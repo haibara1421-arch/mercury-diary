@@ -59,14 +59,24 @@ jobs:
           }
           EOF
 
-      - name: Build debug APK
+      - name: Setup signing
+        run: |
+          base64 -d signing/keystore.b64 > /tmp/mercury-diary.p12
+          cat > local.properties << PROPS
+          storeFile=/tmp/mercury-diary.p12
+          storePassword=mercurydiary2026
+          keyAlias=mercury-diary
+          keyPassword=mercurydiary2026
+          PROPS
+
+      - name: Build release APK
         run: |
           chmod +x gradlew
-          ./gradlew assembleGithubDebug
+          ./gradlew assembleGithubRelease
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: mercury-diary
-          path: app/build/outputs/apk/github/debug/*.apk
+          path: app/build/outputs/apk/github/release/*.apk
           retention-days: 90
