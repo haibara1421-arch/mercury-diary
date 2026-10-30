@@ -407,26 +407,28 @@ private fun MessagePartsBlock(
                             visual = true,
                         )
                         // 气泡拆分：按连续空行拆成多段，每段独立气泡
-                        val textSegments = if (role != MessageRole.USER && settings.displaySetting.enableBubbleSplit && !streamingText) {
+                        val textSegments = if (settings.displaySetting.enableBubbleSplit && !streamingText) {
                             processedText.split(Regex("\n\n+")).filter { it.isNotBlank() }
                         } else {
                             listOf(processedText)
                         }
                         val textContent = @Composable {
                             if (role == MessageRole.USER) {
-                                ChatMessageBubble(
-                                    role = role,
-                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = settings.displaySetting.bubbleOpacity),
-                                    onClick = { onUserMessageClick?.invoke() },
-                                    // 用户气泡不占满整行，和助手的回复错开
-                                    modifier = Modifier
-                                        .padding(start = 24.dp)
-                                        .animateContentSize(),
-                                ) {
-                                    MarkdownBlock(
-                                        content = processedText,
-                                        onClickCitation = handleClickCitation
-                                    )
+                                textSegments.forEach { segment ->
+                                    ChatMessageBubble(
+                                        role = role,
+                                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = settings.displaySetting.bubbleOpacity),
+                                        onClick = { onUserMessageClick?.invoke() },
+                                        // 用户气泡不占满整行，和助手的回复错开
+                                        modifier = Modifier
+                                            .padding(start = 24.dp)
+                                            .animateContentSize(),
+                                    ) {
+                                        MarkdownBlock(
+                                            content = segment,
+                                            onClickCitation = handleClickCitation
+                                        )
+                                    }
                                 }
                             } else {
                                 textSegments.forEachIndexed { segIndex, segment ->
