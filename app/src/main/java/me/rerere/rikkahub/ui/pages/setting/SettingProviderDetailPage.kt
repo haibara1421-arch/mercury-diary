@@ -105,6 +105,7 @@ import me.rerere.hugeicons.stroke.Settings03
 import me.rerere.hugeicons.stroke.Share01
 import me.rerere.hugeicons.stroke.Tick01
 import me.rerere.hugeicons.stroke.Tools
+import me.rerere.hugeicons.stroke.Refresh
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.ai.account.preserveCredential
 import me.rerere.rikkahub.ui.components.ai.ExtensionEmptyState
@@ -535,6 +536,41 @@ private fun ModelList(
                 .align(Alignment.BottomCenter)
                 .offset(y = -ScreenOffset),
         ) {
+            val toaster = LocalToaster.current
+
+            // 同步模型列表：自动添加新上架、移除已下架
+            IconButton(
+                onClick = {
+                    if (modelList.isEmpty()) {
+                        toaster.show("无法获取在线模型列表", type = ToastType.Warning)
+                        return@IconButton
+                    }
+                    val apiModelIds = modelList.map { it.modelId }.toSet()
+                    val savedModelIds = providerSetting.models.map { it.modelId }.toSet()
+
+                    // 保留仍在线的已保存模型（保持自定义设置不变）
+                    val kept = providerSetting.models.filter { it.modelId in apiModelIds }
+                    // 添加新上架的模型
+                    val added = modelList.filter { it.modelId !in savedModelIds }.map { model ->
+                        model.copy(
+                            inputModalities = ModelRegistry.MODEL_INPUT_MODALITIES.getData(model.modelId),
+                            outputModalities = ModelRegistry.MODEL_OUTPUT_MODALITIES.getData(model.modelId),
+                            abilities = ModelRegistry.MODEL_ABILITIES.getData(model.modelId)
+                        )
+                    }
+                    val removedCount = providerSetting.models.size - kept.size
+
+                    if (added.isEmpty() && removedCount == 0) {
+                        toaster.show("模型列表已是最新", type = ToastType.Normal)
+                    } else {
+                        onUpdateProvider(providerSetting.copyProvider(models = kept + added))
+                        toaster.show("同步完成：+${added.size} -$removedCount", type = ToastType.Normal)
+                    }
+                }
+            ) {
+                Icon(HugeIcons.Refresh, contentDescription = "同步模型列表")
+            }
+
             AddModelButton(
                 models = modelList,
                 selectedModels = providerSetting.models,
