@@ -414,45 +414,57 @@ private fun MessagePartsBlock(
                         }
                         val textContent = @Composable {
                             if (role == MessageRole.USER) {
-                                textSegments.forEach { segment ->
-                                    ChatMessageBubble(
-                                        role = role,
-                                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = settings.displaySetting.bubbleOpacity),
-                                        onClick = { onUserMessageClick?.invoke() },
-                                        // 用户气泡不占满整行，和助手的回复错开
-                                        modifier = Modifier
-                                            .padding(start = 24.dp)
-                                            .animateContentSize(),
-                                    ) {
-                                        MarkdownBlock(
-                                            content = segment,
-                                            onClickCitation = handleClickCitation
-                                        )
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                                    horizontalAlignment = Alignment.End,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    textSegments.forEach { segment ->
+                                        ChatMessageBubble(
+                                            role = role,
+                                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = settings.displaySetting.bubbleOpacity),
+                                            onClick = { onUserMessageClick?.invoke() },
+                                            // 用户气泡不占满整行，和助手的回复错开
+                                            modifier = Modifier
+                                                .padding(start = 24.dp)
+                                                .animateContentSize(),
+                                        ) {
+                                            MarkdownBlock(
+                                                content = segment,
+                                                onClickCitation = handleClickCitation
+                                            )
+                                        }
                                     }
                                 }
                             } else {
-                                textSegments.forEachIndexed { segIndex, segment ->
-                                    val isLastSegment = segIndex == textSegments.lastIndex
-                                    if (settings.displaySetting.showAssistantBubble) {
-                                        ChatMessageBubble(
-                                            role = role,
-                                            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = settings.displaySetting.bubbleOpacity),
-                                            modifier = Modifier.animateContentSize(),
-                                        ) {
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                                    horizontalAlignment = Alignment.Start,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    textSegments.forEachIndexed { segIndex, segment ->
+                                        val isLastSegment = segIndex == textSegments.lastIndex
+                                        if (settings.displaySetting.showAssistantBubble) {
+                                            ChatMessageBubble(
+                                                role = role,
+                                                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = settings.displaySetting.bubbleOpacity),
+                                                modifier = Modifier.animateContentSize(),
+                                            ) {
+                                                MarkdownBlock(
+                                                    content = segment,
+                                                    streaming = streamingText && isLastSegment,
+                                                    onClickCitation = handleClickCitation,
+                                                )
+                                            }
+                                        } else {
                                             MarkdownBlock(
                                                 content = segment,
                                                 streaming = streamingText && isLastSegment,
                                                 onClickCitation = handleClickCitation,
+                                                modifier = Modifier
+                                                    .animateContentSize()
                                             )
                                         }
-                                    } else {
-                                        MarkdownBlock(
-                                            content = segment,
-                                            streaming = streamingText && isLastSegment,
-                                            onClickCitation = handleClickCitation,
-                                            modifier = Modifier
-                                                .animateContentSize()
-                                        )
                                     }
                                 }
                             }
