@@ -2,7 +2,7 @@
 <resources>
   <style name="Theme.Rikkahub.Splash" parent="Theme.Rikkahub">
     <item name="android:windowBackground">@drawable/splash_screen</item>
-    <item name="android:windowSplashScreenBackground">@android:color/transparent</item>
+    <item name="android:windowSplashScreenBackground">#FFFEF7FF</item>
     <item name="android:windowSplashScreenAnimatedIcon">@android:color/transparent</item>
   </style>
 </resources>
