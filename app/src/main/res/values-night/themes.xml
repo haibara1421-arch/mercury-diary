@@ -3,4 +3,7 @@
   <style name="Theme.Rikkahub" parent="android:Theme.Material.NoActionBar">
     <item name="android:windowBackground">#FF141218</item>
   </style>
+  <style name="Theme.Rikkahub.Splash" parent="Theme.Rikkahub">
+    <item name="android:windowBackground">@drawable/splash_screen</item>
+  </style>
 </resources>
