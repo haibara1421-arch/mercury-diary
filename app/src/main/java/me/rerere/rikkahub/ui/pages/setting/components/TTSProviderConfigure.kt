@@ -874,7 +874,8 @@ private fun CardGroupScope.elevenLabsTTSItems(
     val models = listOf(
         "eleven_multilingual_v2" to "Eleven Multilingual v2",
         "eleven_v3" to "Eleven v3",
-        "eleven_flash_v2_5" to "Eleven Flash v2.5"
+        "eleven_flash_v2_5" to "Eleven Flash v2.5",
+        "eleven_v4" to "Eleven v4"
     )
 
     formItem(
