@@ -568,7 +568,7 @@ private fun ModelList(
                     }
                 }
             ) {
-                Icon(HugeIcons.Refresh, contentDescription = "同步模型列表")
+                Icon(HugeIcons.Refresh, contentDescription = "同步模型列表", modifier = Modifier.size(20.dp))
             }
 
             AddModelButton(
