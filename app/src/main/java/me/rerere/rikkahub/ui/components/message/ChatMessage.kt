@@ -401,6 +401,17 @@ private fun MessagePartsBlock(
                     is UIMessagePart.Text -> {
                         // 只有正在生成的最后一段文字可能停在没写完的语法上
                         val streamingText = loading && block.index == parts.lastIndex
+                        val processedText = part.text.replaceRegexes(
+                            assistant = assistant,
+                            scope = if (role == MessageRole.USER) AssistantAffectScope.USER else AssistantAffectScope.ASSISTANT,
+                            visual = true,
+                        )
+                        // 气泡拆分：按连续空行拆成多段，每段独立气泡
+                        val textSegments = if (role != MessageRole.USER && settings.displaySetting.enableBubbleSplit && !streamingText) {
+                            processedText.split(Regex("\n\n+")).filter { it.isNotBlank() }
+                        } else {
+                            listOf(processedText)
+                        }
                         val textContent = @Composable {
                             if (role == MessageRole.USER) {
                                 ChatMessageBubble(
@@ -413,43 +424,34 @@ private fun MessagePartsBlock(
                                         .animateContentSize(),
                                 ) {
                                     MarkdownBlock(
-                                        content = part.text.replaceRegexes(
-                                            assistant = assistant,
-                                            scope = AssistantAffectScope.USER,
-                                            visual = true,
-                                        ),
+                                        content = processedText,
                                         onClickCitation = handleClickCitation
                                     )
                                 }
                             } else {
-                                if (settings.displaySetting.showAssistantBubble) {
-                                    ChatMessageBubble(
-                                        role = role,
-                                        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = settings.displaySetting.bubbleOpacity),
-                                        modifier = Modifier.animateContentSize(),
-                                    ) {
+                                textSegments.forEachIndexed { segIndex, segment ->
+                                    val isLastSegment = segIndex == textSegments.lastIndex
+                                    if (settings.displaySetting.showAssistantBubble) {
+                                        ChatMessageBubble(
+                                            role = role,
+                                            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = settings.displaySetting.bubbleOpacity),
+                                            modifier = Modifier.animateContentSize(),
+                                        ) {
+                                            MarkdownBlock(
+                                                content = segment,
+                                                streaming = streamingText && isLastSegment,
+                                                onClickCitation = handleClickCitation,
+                                            )
+                                        }
+                                    } else {
                                         MarkdownBlock(
-                                            content = part.text.replaceRegexes(
-                                                assistant = assistant,
-                                                scope = AssistantAffectScope.ASSISTANT,
-                                                visual = true,
-                                            ),
-                                            streaming = streamingText,
+                                            content = segment,
+                                            streaming = streamingText && isLastSegment,
                                             onClickCitation = handleClickCitation,
+                                            modifier = Modifier
+                                                .animateContentSize()
                                         )
                                     }
-                                } else {
-                                    MarkdownBlock(
-                                        content = part.text.replaceRegexes(
-                                            assistant = assistant,
-                                            scope = AssistantAffectScope.ASSISTANT,
-                                            visual = true,
-                                        ),
-                                        streaming = streamingText,
-                                        onClickCitation = handleClickCitation,
-                                        modifier = Modifier
-                                            .animateContentSize()
-                                    )
                                 }
                             }
                         }

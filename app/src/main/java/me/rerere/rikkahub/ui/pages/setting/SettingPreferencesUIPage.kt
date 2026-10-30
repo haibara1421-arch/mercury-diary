@@ -159,6 +159,12 @@ fun SettingPreferencesUIPage(vm: SettingVM = koinViewModel()) {
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
+                    switchItem(
+                        checked = displaySetting.enableBubbleSplit,
+                        onCheckedChange = { updateDisplaySetting(displaySetting.copy(enableBubbleSplit = it)) },
+                        supportingContent = { Text("将助手的长回复按段落拆分成多个独立气泡") },
+                        headlineContent = { Text("气泡拆分") },
+                    )
                 }
             }
 
