@@ -165,6 +165,12 @@ fun SettingPreferencesUIPage(vm: SettingVM = koinViewModel()) {
                         supportingContent = { Text("将助手的长回复按段落拆分成多个独立气泡") },
                         headlineContent = { Text("气泡拆分") },
                     )
+                    switchItem(
+                        checked = displaySetting.hideActionButtons,
+                        onCheckedChange = { updateDisplaySetting(displaySetting.copy(hideActionButtons = it)) },
+                        supportingContent = { Text("隐藏消息下方的操作按钮，长按气泡可打开操作菜单") },
+                        headlineContent = { Text("隐藏操作栏") },
+                    )
                 }
             }
 

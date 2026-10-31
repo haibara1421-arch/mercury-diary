@@ -189,7 +189,7 @@ fun ChatMessage(
                 onToolApproval = onToolApproval,
                 onToolAnswer = onToolAnswer,
                 onUserMessageClick = if (message.role == MessageRole.USER) onEdit else null,
-                onLongPressBubble = if (isBubbleSplit) {{ showActionsSheet = true }} else null,
+                onLongPressBubble = if (settings.hideActionButtons) {{ showActionsSheet = true }} else null,
             )
 
             message.translation?.let { translation ->
@@ -200,9 +200,8 @@ fun ChatMessage(
             }
         }
 
-        val isBubbleSplit = settings.enableBubbleSplit
-        val showActions = if (isBubbleSplit) {
-            false // In bubble split mode, actions are accessed via long press
+        val showActions = if (settings.hideActionButtons) {
+            false
         } else if (lastMessage) {
             !loading
         } else {
@@ -309,7 +308,6 @@ private fun MessagePartsBlock(
     // 消息输出HapticFeedback
     val hapticFeedback = LocalHapticFeedback.current
     val settings = LocalSettings.current
-    val isBubbleSplit = settings.displaySetting.enableBubbleSplit
     val partsState by rememberUpdatedState(parts)
 
     val handleClickCitation: (String) -> Unit = remember {
@@ -432,7 +430,7 @@ private fun MessagePartsBlock(
                                             role = role,
                                             color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = settings.displaySetting.bubbleOpacity),
                                             onClick = { onUserMessageClick?.invoke() },
-                                            onLongClick = if (isBubbleSplit) onLongPressBubble else null,
+                                            onLongClick = onLongPressBubble,
                                             // 用户气泡不占满整行，和助手的回复错开
                                             modifier = Modifier
                                                 .padding(start = 24.dp)
@@ -457,7 +455,7 @@ private fun MessagePartsBlock(
                                             ChatMessageBubble(
                                                 role = role,
                                                 color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = settings.displaySetting.bubbleOpacity),
-                                                onLongClick = if (isBubbleSplit) onLongPressBubble else null,
+                                                onLongClick = onLongPressBubble,
                                                 modifier = Modifier.animateContentSize(),
                                             ) {
                                                 MarkdownBlock(
