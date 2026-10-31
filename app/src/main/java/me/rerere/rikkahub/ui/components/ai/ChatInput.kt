@@ -80,8 +80,11 @@ import me.rerere.ui.toast.ToastType
 import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.collectLatest
+import me.rerere.ai.core.ReasoningLevel
 import me.rerere.ai.provider.Model
+import me.rerere.ai.core.ReasoningLevel
 import me.rerere.ai.provider.ModelAbility
+import me.rerere.ai.core.ReasoningLevel
 import me.rerere.ai.provider.ModelType
 import me.rerere.ai.ui.UIMessagePart
 import me.rerere.asr.ASRStatus
@@ -308,26 +311,51 @@ fun ChatInput(
 
                             }
                         } else {
-                            // Immersive mode: model + reasoning on left
-                            Row(
-                                modifier = Modifier.weight(1f),
-                                horizontalArrangement = Arrangement.spacedBy(2.dp)
-                            ) {
-                                ModelSelectorButton(
-                                    state = modelListState,
-                                    onlyIcon = true,
-                                    modifier = Modifier,
-                                )
-                                if (chatModel?.abilities?.contains(ModelAbility.REASONING) == true) {
-                                    ReasoningButton(
-                                        reasoningLevel = assistant.reasoningLevel,
-                                        onUpdateReasoningLevel = {
-                                            onUpdateAssistant(assistant.copy(reasoningLevel = it))
-                                        },
-                                        onlyIcon = true,
+                            // Immersive mode: combined model/reasoning button
+                            var showModelMenu by remember { mutableStateOf(false) }
+                            Box {
+                                ActionIconButton(onClick = { showModelMenu = true }) {
+                                    Icon(
+                                        imageVector = HugeIcons.Zap,
+                                        contentDescription = null,
                                     )
                                 }
+                                DropdownMenu(
+                                    expanded = showModelMenu,
+                                    onDismissRequest = { showModelMenu = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text(chatModel?.displayName ?: "选择模型") },
+                                        onClick = {
+                                            showModelMenu = false
+                                            modelListState.open()
+                                        },
+                                    )
+                                    if (chatModel?.abilities?.contains(ModelAbility.REASONING) == true) {
+                                        val levelText = when (assistant.reasoningLevel) {
+                                            ReasoningLevel.AUTO -> "自动"
+                                            ReasoningLevel.LOW -> "低"
+                                            ReasoningLevel.MEDIUM -> "中"
+                                            ReasoningLevel.HIGH -> "高"
+                                            ReasoningLevel.DISABLED -> "关闭"
+                                        }
+                                        DropdownMenuItem(
+                                            text = { Text("推理: $levelText") },
+                                            onClick = {
+                                                val next = when (assistant.reasoningLevel) {
+                                                    ReasoningLevel.AUTO -> ReasoningLevel.LOW
+                                                    ReasoningLevel.LOW -> ReasoningLevel.MEDIUM
+                                                    ReasoningLevel.MEDIUM -> ReasoningLevel.HIGH
+                                                    ReasoningLevel.HIGH -> ReasoningLevel.DISABLED
+                                                    ReasoningLevel.DISABLED -> ReasoningLevel.AUTO
+                                                }
+                                                onUpdateAssistant(assistant.copy(reasoningLevel = next))
+                                            },
+                                        )
+                                    }
+                                }
                             }
+                            Spacer(modifier = Modifier.weight(1f))
                         }
 
                         ActionIconButton(

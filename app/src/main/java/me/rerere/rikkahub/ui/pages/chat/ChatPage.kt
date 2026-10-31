@@ -13,10 +13,14 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.HorizontalDividerItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.HorizontalDividerItem
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -67,6 +71,8 @@ import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.hugeicons.stroke.LeftToRightListBullet
 import me.rerere.hugeicons.stroke.Menu03
 import me.rerere.hugeicons.stroke.MoreVertical
+import me.rerere.hugeicons.stroke.View
+import me.rerere.hugeicons.stroke.ViewOff
 import me.rerere.hugeicons.stroke.MessageAdd01
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.datastore.Settings
@@ -343,6 +349,11 @@ private fun ChatPageContent(
                     },
                     onUpdateTitle = {
                         vm.updateTitle(it)
+                    },
+                    onToggleImmersive = {
+                        vm.updateSettings { s ->
+                            s.copy(displaySetting = s.displaySetting.copy(immersiveChatMode = !s.displaySetting.immersiveChatMode))
+                        }
                     }
                 )
             },
@@ -575,7 +586,8 @@ private fun TopBar(
     previewMode: Boolean,
     onClickMenu: () -> Unit,
     onNewChat: () -> Unit,
-    onUpdateTitle: (String) -> Unit
+    onUpdateTitle: (String) -> Unit,
+    onToggleImmersive: () -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
@@ -656,6 +668,17 @@ private fun TopBar(
                         onDismissRequest = { showMenu = false }
                     ) {
                         DropdownMenuItem(
+                            text = { Text("沉浸聊天模式") },
+                            onClick = {
+                                showMenu = false
+                                onToggleImmersive()
+                            },
+                            leadingIcon = {
+                                Icon(HugeIcons.ViewOff, null)
+                            }
+                        )
+                        HorizontalDivider()
+                        DropdownMenuItem(
                             text = { Text(if (previewMode) stringResource(R.string.cancel) else stringResource(R.string.more_options)) },
                             onClick = {
                                 showMenu = false
@@ -686,12 +709,36 @@ private fun TopBar(
                     Icon(if (previewMode) HugeIcons.Cancel01 else HugeIcons.LeftToRightListBullet, "Chat Options")
                 }
 
-                IconButton(
-                    onClick = {
-                        onNewChat()
+                var showNormalMenu by remember { mutableStateOf(false) }
+                Box {
+                    IconButton(onClick = { showNormalMenu = true }) {
+                        Icon(HugeIcons.MessageAdd01, "New Message")
                     }
-                ) {
-                    Icon(HugeIcons.MessageAdd01, "New Message")
+                    DropdownMenu(
+                        expanded = showNormalMenu,
+                        onDismissRequest = { showNormalMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.chat_page_new_chat)) },
+                            onClick = {
+                                showNormalMenu = false
+                                onNewChat()
+                            },
+                            leadingIcon = {
+                                Icon(HugeIcons.MessageAdd01, null)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("沉浸聊天模式") },
+                            onClick = {
+                                showNormalMenu = false
+                                onToggleImmersive()
+                            },
+                            leadingIcon = {
+                                Icon(HugeIcons.View, null)
+                            }
+                        )
+                    }
                 }
             }
         },
