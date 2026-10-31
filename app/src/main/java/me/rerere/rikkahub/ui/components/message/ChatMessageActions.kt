@@ -266,7 +266,10 @@ fun ChatMessageActionsSheet(
     isFavorite: Boolean = false,
     onToggleFavorite: (() -> Unit)? = null,
     onWebViewPreview: () -> Unit,
-    onDismissRequest: () -> Unit
+    onDismissRequest: () -> Unit,
+    onRegenerate: (() -> Unit)? = null,
+    onTranslate: ((UIMessage, Locale) -> Unit)? = null,
+    onClearTranslation: ((UIMessage) -> Unit)? = null,
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
@@ -275,7 +278,22 @@ fun ChatMessageActionsSheet(
         // WebView Preview (only show if message has text content)
         val hasTextContent = message.parts.filterIsInstance<UIMessagePart.Text>()
             .any { it.text.isNotBlank() }
+        val context = LocalContext.current
+        val settings = LocalSettings.current
+        var showTranslateDialog by remember { mutableStateOf(false) }
         val actions = buildList {
+            // Quick actions (copy, regenerate, TTS, translate) - always shown
+            add(MessageSheetAction(HugeIcons.Copy01, stringResource(R.string.copy), onClick = {
+                context.copyMessageToClipboard(message)
+            }))
+            if (onRegenerate != null) {
+                add(MessageSheetAction(HugeIcons.Refresh03, stringResource(R.string.regenerate), onClick = onRegenerate))
+            }
+            if (onTranslate != null) {
+                add(MessageSheetAction(HugeIcons.Translate, stringResource(R.string.translate), onClick = {
+                    showTranslateDialog = true
+                }))
+            }
             add(MessageSheetAction(HugeIcons.TextSelection, stringResource(R.string.select_and_copy), onClick = onSelectAndCopy))
             if (hasTextContent) {
                 add(MessageSheetAction(HugeIcons.WebDesign01, stringResource(R.string.render_with_webview), onClick = onWebViewPreview))
@@ -346,5 +364,23 @@ fun ChatMessageActionsSheet(
                 }
             }
         }
+    }
+
+    if (showTranslateDialog && onTranslate != null) {
+        LanguageSelectionDialog(
+            onLanguageSelected = { language ->
+                showTranslateDialog = false
+                onDismissRequest()
+                onTranslate(message, language)
+            },
+            onClearTranslation = {
+                showTranslateDialog = false
+                onDismissRequest()
+                onClearTranslation?.invoke(message)
+            },
+            onDismissRequest = {
+                showTranslateDialog = false
+            },
+        )
     }
 }

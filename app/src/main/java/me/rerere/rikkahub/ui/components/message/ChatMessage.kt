@@ -273,7 +273,10 @@ fun ChatMessage(
             },
             onDismissRequest = {
                 showActionsSheet = false
-            }
+            },
+            onRegenerate = onRegenerate,
+            onTranslate = onTranslate,
+            onClearTranslation = onClearTranslation,
         )
     }
 
