@@ -142,6 +142,7 @@ data class DisplaySetting(
     val hideActionButtons: Boolean = false,
     val simpleTopBar: Boolean = false,
     val simpleInputBar: Boolean = false,
+    val immersiveChatMode: Boolean = false,
     val bubbleOpacity: Float = 1.0f,
     val showModelIcon: Boolean = true,
     val showModelName: Boolean = true,

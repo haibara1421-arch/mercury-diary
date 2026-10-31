@@ -12,7 +12,11 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -592,7 +596,7 @@ private fun TopBar(
             }
         },
         title = {
-            if (settings.displaySetting.simpleTopBar) {
+            if (settings.displaySetting.immersiveChatMode) {
                 Box(
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.Center,
@@ -640,7 +644,39 @@ private fun TopBar(
             }
         },
         actions = {
-            if (!settings.displaySetting.simpleTopBar) {
+            if (settings.displaySetting.immersiveChatMode) {
+                var showMenu by remember { mutableStateOf(false) }
+                Box {
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(HugeIcons.MoreVertical, "Menu")
+                    }
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(if (previewMode) stringResource(R.string.cancel) else stringResource(R.string.chat_options)) },
+                            onClick = {
+                                showMenu = false
+                                onClickMenu()
+                            },
+                            leadingIcon = {
+                                Icon(if (previewMode) HugeIcons.Cancel01 else HugeIcons.LeftToRightListBullet, null)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.chat_page_new_chat)) },
+                            onClick = {
+                                showMenu = false
+                                onNewChat()
+                            },
+                            leadingIcon = {
+                                Icon(HugeIcons.MessageAdd01, null)
+                            }
+                        )
+                    }
+                }
+            } else {
                 IconButton(
                     onClick = {
                         onClickMenu()
@@ -648,14 +684,14 @@ private fun TopBar(
                 ) {
                     Icon(if (previewMode) HugeIcons.Cancel01 else HugeIcons.LeftToRightListBullet, "Chat Options")
                 }
-            }
 
-            IconButton(
-                onClick = {
-                    onNewChat()
+                IconButton(
+                    onClick = {
+                        onNewChat()
+                    }
+                ) {
+                    Icon(HugeIcons.MessageAdd01, "New Message")
                 }
-            ) {
-                Icon(HugeIcons.MessageAdd01, "New Message")
             }
         },
     )

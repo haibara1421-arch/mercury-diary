@@ -191,7 +191,7 @@ fun ChatMessage(
                 onToolApproval = onToolApproval,
                 onToolAnswer = onToolAnswer,
                 onUserMessageClick = if (message.role == MessageRole.USER) onEdit else null,
-                onLongPressBubble = if (settings.hideActionButtons) {{ showActionsSheet = true }} else null,
+                onLongPressBubble = if (settings.immersiveChatMode) {{ showActionsSheet = true }} else null,
             )
 
             message.translation?.let { translation ->
@@ -202,7 +202,7 @@ fun ChatMessage(
             }
         }
 
-        val showActions = if (settings.hideActionButtons) {
+        val showActions = if (settings.immersiveChatMode) {
             false
         } else if (lastMessage) {
             !loading
@@ -236,7 +236,7 @@ fun ChatMessage(
         }
 
         // When action buttons are hidden, show branch selector and/or timestamp standalone
-        if (settings.hideActionButtons) {
+        if (settings.immersiveChatMode) {
             val hasBranches = node.messages.size > 1
             val showTime = settings.showDateTimeInMessage
             if (hasBranches || showTime) {
@@ -454,7 +454,7 @@ private fun MessagePartsBlock(
                         val textContent = @Composable {
                             if (role == MessageRole.USER) {
                                 Column(
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(if (settings.immersiveChatMode) 8.dp else 4.dp),
                                     horizontalAlignment = Alignment.End,
                                     modifier = Modifier.fillMaxWidth(),
                                 ) {
@@ -478,7 +478,7 @@ private fun MessagePartsBlock(
                                 }
                             } else {
                                 Column(
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(if (settings.immersiveChatMode) 8.dp else 4.dp),
                                     horizontalAlignment = Alignment.Start,
                                     modifier = Modifier.fillMaxWidth(),
                                 ) {

@@ -281,7 +281,7 @@ fun ChatInput(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        if (!settings.displaySetting.simpleInputBar) {
+                        if (!settings.displaySetting.immersiveChatMode) {
                             Row(
                                 modifier = Modifier
                                     .weight(1f)
@@ -308,7 +308,26 @@ fun ChatInput(
 
                             }
                         } else {
-                            Spacer(modifier = Modifier.weight(1f))
+                            // Immersive mode: model + reasoning on left
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                ModelSelectorButton(
+                                    state = modelListState,
+                                    onlyIcon = true,
+                                    modifier = Modifier,
+                                )
+                                if (chatModel?.abilities?.contains(ModelAbility.REASONING) == true) {
+                                    ReasoningButton(
+                                        reasoningLevel = assistant.reasoningLevel,
+                                        onUpdateReasoningLevel = {
+                                            onUpdateAssistant(assistant.copy(reasoningLevel = it))
+                                        },
+                                        onlyIcon = true,
+                                    )
+                                }
+                            }
                         }
 
                         ActionIconButton(
@@ -320,7 +339,7 @@ fun ChatInput(
                             )
                         }
 
-                        if (!voiceState.isActive && (asrState.isAvailable || asrState.isRecording)) {
+                        if (!settings.displaySetting.immersiveChatMode && !voiceState.isActive && (asrState.isAvailable || asrState.isRecording)) {
                             AsrButton(
                                 state = asrState,
                                 onClick = {
