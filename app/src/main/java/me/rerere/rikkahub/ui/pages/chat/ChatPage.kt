@@ -66,6 +66,7 @@ import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.hugeicons.stroke.LeftToRightListBullet
 import me.rerere.hugeicons.stroke.Menu03
+import me.rerere.hugeicons.stroke.MoreVertical
 import me.rerere.hugeicons.stroke.MessageAdd01
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.datastore.Settings
@@ -655,7 +656,7 @@ private fun TopBar(
                         onDismissRequest = { showMenu = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text(if (previewMode) stringResource(R.string.cancel) else stringResource(R.string.chat_options)) },
+                            text = { Text(if (previewMode) stringResource(R.string.cancel) else stringResource(R.string.more_options)) },
                             onClick = {
                                 showMenu = false
                                 onClickMenu()

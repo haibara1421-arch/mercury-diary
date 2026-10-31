@@ -454,7 +454,7 @@ private fun MessagePartsBlock(
                         val textContent = @Composable {
                             if (role == MessageRole.USER) {
                                 Column(
-                                    verticalArrangement = Arrangement.spacedBy(if (settings.immersiveChatMode) 8.dp else 4.dp),
+                                    verticalArrangement = Arrangement.spacedBy(if (settings.displaySetting.immersiveChatMode) 8.dp else 4.dp),
                                     horizontalAlignment = Alignment.End,
                                     modifier = Modifier.fillMaxWidth(),
                                 ) {
@@ -478,7 +478,7 @@ private fun MessagePartsBlock(
                                 }
                             } else {
                                 Column(
-                                    verticalArrangement = Arrangement.spacedBy(if (settings.immersiveChatMode) 8.dp else 4.dp),
+                                    verticalArrangement = Arrangement.spacedBy(if (settings.displaySetting.immersiveChatMode) 8.dp else 4.dp),
                                     horizontalAlignment = Alignment.Start,
                                     modifier = Modifier.fillMaxWidth(),
                                 ) {
