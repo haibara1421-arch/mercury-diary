@@ -5,6 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyListState
@@ -68,6 +70,18 @@ import me.rerere.hugeicons.stroke.Menu03
 import me.rerere.hugeicons.stroke.MoreVertical
 import me.rerere.hugeicons.stroke.View
 import me.rerere.hugeicons.stroke.ViewOff
+import kotlin.math.roundToInt
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Slider
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.ExperimentalMaterial3Api
+import me.rerere.rikkahub.data.datastore.DisplaySetting
+import me.rerere.hugeicons.stroke.WebDesign01
+import me.rerere.hugeicons.stroke.Search01
 import me.rerere.hugeicons.stroke.MessageAdd01
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.datastore.Settings
@@ -297,6 +311,7 @@ private fun ChatPageContent(
     val workspaceRepository: WorkspaceRepository = koinInject()
 
     var previewMode by rememberSaveable { mutableStateOf(false) }
+    var showBeautySheet by rememberSaveable { mutableStateOf(false) }
     val hazeState = rememberHazeState()
     var showFilesSheet by remember { mutableStateOf(false) }
     val attachmentPickerActions = rememberChatAttachmentPickerActions(
@@ -349,6 +364,9 @@ private fun ChatPageContent(
                         vm.updateSettings { s ->
                             s.copy(displaySetting = s.displaySetting.copy(immersiveChatMode = !s.displaySetting.immersiveChatMode))
                         }
+                    },
+                    onShowBeautySettings = {
+                        showBeautySheet = true
                     }
                 )
             },
@@ -416,6 +434,16 @@ private fun ChatPageContent(
             },
             containerColor = Color.Transparent,
         ) { innerPadding ->
+            // Beauty Settings BottomSheet
+            if (showBeautySheet) {
+                BeautySettingsSheet(
+                    displaySetting = setting.displaySetting,
+                    onUpdateDisplaySetting = { ds ->
+                        vm.updateSettings { it.copy(displaySetting = ds) }
+                    },
+                    onDismiss = { showBeautySheet = false }
+                )
+            }
             ChatList(
                 innerPadding = innerPadding,
                 conversation = conversation,
@@ -582,7 +610,8 @@ private fun TopBar(
     onClickMenu: () -> Unit,
     onNewChat: () -> Unit,
     onUpdateTitle: (String) -> Unit,
-    onToggleImmersive: () -> Unit = {}
+    onToggleImmersive: () -> Unit = {},
+    onShowBeautySettings: () -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
@@ -672,15 +701,14 @@ private fun TopBar(
                             Icon(if (isImmersive) HugeIcons.ViewOff else HugeIcons.View, null)
                         }
                     )
-                    HorizontalDivider()
                     DropdownMenuItem(
-                        text = { Text(if (previewMode) stringResource(R.string.cancel) else stringResource(R.string.more_options)) },
+                        text = { Text(if (previewMode) "关闭查找" else "查找聊天记录") },
                         onClick = {
                             showMenu = false
                             onClickMenu()
                         },
                         leadingIcon = {
-                            Icon(if (previewMode) HugeIcons.Cancel01 else HugeIcons.LeftToRightListBullet, null)
+                            Icon(if (previewMode) HugeIcons.Cancel01 else HugeIcons.Search01, null)
                         }
                     )
                     DropdownMenuItem(
@@ -691,6 +719,17 @@ private fun TopBar(
                         },
                         leadingIcon = {
                             Icon(HugeIcons.MessageAdd01, null)
+                        }
+                    )
+                    HorizontalDivider()
+                    DropdownMenuItem(
+                        text = { Text("美化设置") },
+                        onClick = {
+                            showMenu = false
+                            onShowBeautySettings()
+                        },
+                        leadingIcon = {
+                            Icon(HugeIcons.WebDesign01, null)
                         }
                     )
                 }
@@ -733,4 +772,129 @@ private fun TopBar(
             }
         )
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BeautySettingsSheet(
+    displaySetting: DisplaySetting,
+    onUpdateDisplaySetting: (DisplaySetting) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = "美化设置",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+            )
+
+            // 显示用户头像
+            BeautySwitch(
+                title = "显示用户头像",
+                subtitle = "是否在聊天消息中显示用户头像",
+                checked = displaySetting.showUserAvatar,
+                onCheckedChange = { onUpdateDisplaySetting(displaySetting.copy(showUserAvatar = it)) },
+            )
+
+            // 显示助手消息气泡
+            BeautySwitch(
+                title = "显示助手消息气泡",
+                subtitle = "是否为助手消息显示气泡背景",
+                checked = displaySetting.showAssistantBubble,
+                onCheckedChange = { onUpdateDisplaySetting(displaySetting.copy(showAssistantBubble = it)) },
+            )
+
+            // 气泡不透明度
+            ListItem(
+                headlineContent = { Text("气泡不透明度") },
+                trailingContent = { Text("${(displaySetting.bubbleOpacity * 100).roundToInt()}%") },
+                supportingContent = {
+                    Slider(
+                        value = displaySetting.bubbleOpacity,
+                        onValueChange = { onUpdateDisplaySetting(displaySetting.copy(bubbleOpacity = it)) },
+                        valueRange = 0.1f..1.0f,
+                        steps = 8,
+                    )
+                },
+            )
+
+            // 显示模型图标
+            BeautySwitch(
+                title = "聊天列表模型图标",
+                subtitle = "是否在聊天列表消息中显示模型图标",
+                checked = displaySetting.showModelIcon,
+                onCheckedChange = { onUpdateDisplaySetting(displaySetting.copy(showModelIcon = it)) },
+            )
+
+            // 显示模型名称
+            BeautySwitch(
+                title = "显示模型名称",
+                subtitle = "是否在聊天消息中显示模型名称",
+                checked = displaySetting.showModelName,
+                onCheckedChange = { onUpdateDisplaySetting(displaySetting.copy(showModelName = it)) },
+            )
+
+            // 在消息中显示日期和时间
+            BeautySwitch(
+                title = "在消息中显示日期和时间",
+                subtitle = "在每条消息下方显示发送时间",
+                checked = displaySetting.showDateTimeInMessage,
+                onCheckedChange = { onUpdateDisplaySetting(displaySetting.copy(showDateTimeInMessage = it)) },
+            )
+
+            // 显示Token使用量
+            BeautySwitch(
+                title = "显示Token使用量",
+                subtitle = "在助手消息下方显示Token消耗",
+                checked = displaySetting.showTokenUsage,
+                onCheckedChange = { onUpdateDisplaySetting(displaySetting.copy(showTokenUsage = it)) },
+            )
+
+            // 显示思考内容
+            BeautySwitch(
+                title = "显示思考内容",
+                subtitle = "是否显示模型的思考过程",
+                checked = displaySetting.showThinkingContent,
+                onCheckedChange = { onUpdateDisplaySetting(displaySetting.copy(showThinkingContent = it)) },
+            )
+
+            // 自动折叠思考内容
+            BeautySwitch(
+                title = "自动折叠思考内容",
+                subtitle = "生成完毕后自动折叠思考内容",
+                checked = displaySetting.autoCloseThinking,
+                onCheckedChange = { onUpdateDisplaySetting(displaySetting.copy(autoCloseThinking = it)) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun BeautySwitch(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    ListItem(
+        headlineContent = { Text(title) },
+        supportingContent = { Text(subtitle) },
+        trailingContent = {
+            Switch(checked = checked, onCheckedChange = onCheckedChange)
+        },
+        modifier = Modifier.clickable { onCheckedChange(!checked) },
+    )
 }

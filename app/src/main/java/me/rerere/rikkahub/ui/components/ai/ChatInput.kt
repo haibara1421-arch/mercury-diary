@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -274,50 +275,11 @@ fun ChatInput(
                         assistant = assistant,
                         completionProviders = completionProviders,
                         onSendMessage = { sendMessage() },
-                    )
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        if (!settings.displaySetting.immersiveChatMode) {
-                            Row(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(2.dp)
-                            ) {
-                                // Model Picker
-                                ModelSelectorButton(
-                                    state = modelListState,
-                                    onlyIcon = true,
-                                    modifier = Modifier,
-                                )
-
-                                // Reasoning
-                                if (chatModel?.abilities?.contains(ModelAbility.REASONING) == true) {
-                                    ReasoningButton(
-                                        reasoningLevel = assistant.reasoningLevel,
-                                        onUpdateReasoningLevel = {
-                                            onUpdateAssistant(assistant.copy(reasoningLevel = it))
-                                        },
-                                        onlyIcon = true,
-                                    )
-                                }
-
-                            }
-                        } else {
-                            // Immersive mode: combined model/reasoning button
+                        immersiveLeadingIcon = if (settings.displaySetting.immersiveChatMode) {{
                             var showModelMenu by remember { mutableStateOf(false) }
                             Box {
-                                ActionIconButton(onClick = { showModelMenu = true }) {
-                                    Icon(
-                                        imageVector = HugeIcons.Zap,
-                                        contentDescription = null,
-                                    )
+                                IconButton(onClick = { showModelMenu = true }, modifier = Modifier.size(36.dp)) {
+                                    Icon(HugeIcons.Zap, contentDescription = null, modifier = Modifier.size(20.dp))
                                 }
                                 DropdownMenu(
                                     expanded = showModelMenu,
@@ -355,7 +317,53 @@ fun ChatInput(
                                     }
                                 }
                             }
-                            Spacer(modifier = Modifier.weight(1f))
+                        }} else null,
+                        immersiveTrailingIcons = if (settings.displaySetting.immersiveChatMode) {{
+                            ActionIconButton(onClick = onMoreClick) {
+                                Icon(HugeIcons.Add01, contentDescription = null)
+                            }
+                            SendButton(
+                                loading = loading,
+                                empty = state.isEmpty(),
+                                onClick = { sendMessage() },
+                                onLongClick = { sendMessageWithoutAnswer() },
+                            )
+                        }} else null,
+                    )
+
+                    if (!settings.displaySetting.immersiveChatMode) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                            Row(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                // Model Picker
+                                ModelSelectorButton(
+                                    state = modelListState,
+                                    onlyIcon = true,
+                                    modifier = Modifier,
+                                )
+
+                                // Reasoning
+                                if (chatModel?.abilities?.contains(ModelAbility.REASONING) == true) {
+                                    ReasoningButton(
+                                        reasoningLevel = assistant.reasoningLevel,
+                                        onUpdateReasoningLevel = {
+                                            onUpdateAssistant(assistant.copy(reasoningLevel = it))
+                                        },
+                                        onlyIcon = true,
+                                    )
+                                }
+
+                            }
                         }
 
                         ActionIconButton(
@@ -409,6 +417,7 @@ fun ChatInput(
                             )
                         }
                     }
+                    } // end if (!immersiveChatMode)
                 }
             }
 
@@ -493,6 +502,8 @@ private fun TextInputRow(
     assistant: Assistant,
     completionProviders: List<ChatCompletionProvider>,
     onSendMessage: () -> Unit,
+    immersiveLeadingIcon: (@Composable () -> Unit)? = null,
+    immersiveTrailingIcons: (@Composable RowScope.() -> Unit)? = null,
 ) {
     val settings = LocalSettings.current
     val filesManager: FilesManager = koinInject()
@@ -656,7 +667,9 @@ private fun TextInputRow(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    if (isFocused) {
+                    if (immersiveTrailingIcons != null) {
+                        immersiveTrailingIcons()
+                    } else if (isFocused) {
                         IconButton(
                             onClick = {
                                 isFullScreen = !isFullScreen
@@ -666,11 +679,11 @@ private fun TextInputRow(
                     }
                 }
             },
-            leadingIcon = if (quickMessages.isNotEmpty()) {
-                {
-                    QuickMessageButton(quickMessages = quickMessages, state = state)
-                }
-            } else null,
+            leadingIcon = when {
+                immersiveLeadingIcon != null -> immersiveLeadingIcon
+                quickMessages.isNotEmpty() -> {{ QuickMessageButton(quickMessages = quickMessages, state = state) }}
+                else -> null
+            },
         )
         if (isFullScreen) {
             FullScreenEditor(

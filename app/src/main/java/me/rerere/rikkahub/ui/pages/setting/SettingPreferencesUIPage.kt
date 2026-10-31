@@ -159,18 +159,7 @@ fun SettingPreferencesUIPage(vm: SettingVM = koinViewModel()) {
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
-                    switchItem(
-                        checked = displaySetting.enableBubbleSplit,
-                        onCheckedChange = { updateDisplaySetting(displaySetting.copy(enableBubbleSplit = it)) },
-                        supportingContent = { Text("将助手的长回复按段落拆分成多个独立气泡") },
-                        headlineContent = { Text("气泡拆分") },
-                    )
-                    switchItem(
-                        checked = displaySetting.immersiveChatMode,
-                        onCheckedChange = { updateDisplaySetting(displaySetting.copy(immersiveChatMode = it)) },
-                        supportingContent = { Text("简化顶栏和输入栏，隐藏操作栏，长按气泡弹出菜单") },
-                        headlineContent = { Text("沉浸聊天模式") },
-                    )
+
                 }
             }
 
