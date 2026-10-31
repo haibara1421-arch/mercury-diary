@@ -80,7 +80,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import me.rerere.rikkahub.data.datastore.DisplaySetting
-import me.rerere.hugeicons.stroke.Settings03
+import me.rerere.hugeicons.stroke.PaintBoard
 import me.rerere.hugeicons.stroke.Search01
 import me.rerere.hugeicons.stroke.MessageAdd01
 import me.rerere.rikkahub.R
@@ -729,7 +729,7 @@ private fun TopBar(
                             onShowBeautySettings()
                         },
                         leadingIcon = {
-                            Icon(HugeIcons.Settings03, null)
+                            Icon(HugeIcons.PaintBoard, null)
                         }
                     )
                 }
