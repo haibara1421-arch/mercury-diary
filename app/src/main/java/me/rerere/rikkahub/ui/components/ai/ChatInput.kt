@@ -41,6 +41,7 @@ import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -333,21 +334,22 @@ fun ChatInput(
                                     )
                                     if (chatModel?.abilities?.contains(ModelAbility.REASONING) == true) {
                                         val levelText = when (assistant.reasoningLevel) {
+                                            ReasoningLevel.OFF -> "关闭"
                                             ReasoningLevel.AUTO -> "自动"
                                             ReasoningLevel.LOW -> "低"
                                             ReasoningLevel.MEDIUM -> "中"
                                             ReasoningLevel.HIGH -> "高"
-                                            ReasoningLevel.DISABLED -> "关闭"
+                                            else -> assistant.reasoningLevel.name
                                         }
                                         DropdownMenuItem(
                                             text = { Text("推理: $levelText") },
                                             onClick = {
                                                 val next = when (assistant.reasoningLevel) {
+                                                    ReasoningLevel.OFF -> ReasoningLevel.AUTO
                                                     ReasoningLevel.AUTO -> ReasoningLevel.LOW
                                                     ReasoningLevel.LOW -> ReasoningLevel.MEDIUM
                                                     ReasoningLevel.MEDIUM -> ReasoningLevel.HIGH
-                                                    ReasoningLevel.HIGH -> ReasoningLevel.DISABLED
-                                                    ReasoningLevel.DISABLED -> ReasoningLevel.AUTO
+                                                    else -> ReasoningLevel.OFF
                                                 }
                                                 onUpdateAssistant(assistant.copy(reasoningLevel = next))
                                             },
