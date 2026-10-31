@@ -233,6 +233,14 @@ fun ChatMessage(
             }
         }
 
+        // When action buttons are hidden but message has branches, show branch selector standalone
+        if (settings.hideActionButtons && node.messages.size > 1) {
+            ChatMessageBranchSelector(
+                node = node,
+                onUpdate = onUpdate,
+            )
+        }
+
         EditedFilesList(
             parts = message.parts,
             assistant = assistant,
