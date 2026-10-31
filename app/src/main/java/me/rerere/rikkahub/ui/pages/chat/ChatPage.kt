@@ -652,88 +652,47 @@ private fun TopBar(
             }
         },
         actions = {
-            if (settings.displaySetting.immersiveChatMode) {
-                var showMenu by remember { mutableStateOf(false) }
-                Box {
-                    IconButton(onClick = { showMenu = true }) {
-                        Icon(HugeIcons.MoreVertical, "Menu")
-                    }
-                    DropdownMenu(
-                        expanded = showMenu,
-                        onDismissRequest = { showMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("沉浸聊天模式") },
-                            onClick = {
-                                showMenu = false
-                                onToggleImmersive()
-                            },
-                            leadingIcon = {
-                                Icon(HugeIcons.ViewOff, null)
-                            }
-                        )
-                        HorizontalDivider()
-                        DropdownMenuItem(
-                            text = { Text(if (previewMode) stringResource(R.string.cancel) else stringResource(R.string.more_options)) },
-                            onClick = {
-                                showMenu = false
-                                onClickMenu()
-                            },
-                            leadingIcon = {
-                                Icon(if (previewMode) HugeIcons.Cancel01 else HugeIcons.LeftToRightListBullet, null)
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.chat_page_new_chat)) },
-                            onClick = {
-                                showMenu = false
-                                onNewChat()
-                            },
-                            leadingIcon = {
-                                Icon(HugeIcons.MessageAdd01, null)
-                            }
-                        )
-                    }
+            var showMenu by remember { mutableStateOf(false) }
+            Box {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(HugeIcons.MoreVertical, "Menu")
                 }
-            } else {
-                IconButton(
-                    onClick = {
-                        onClickMenu()
-                    }
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
                 ) {
-                    Icon(if (previewMode) HugeIcons.Cancel01 else HugeIcons.LeftToRightListBullet, "Chat Options")
-                }
-
-                var showNormalMenu by remember { mutableStateOf(false) }
-                Box {
-                    IconButton(onClick = { showNormalMenu = true }) {
-                        Icon(HugeIcons.MessageAdd01, "New Message")
-                    }
-                    DropdownMenu(
-                        expanded = showNormalMenu,
-                        onDismissRequest = { showNormalMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.chat_page_new_chat)) },
-                            onClick = {
-                                showNormalMenu = false
-                                onNewChat()
-                            },
-                            leadingIcon = {
-                                Icon(HugeIcons.MessageAdd01, null)
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("沉浸聊天模式") },
-                            onClick = {
-                                showNormalMenu = false
-                                onToggleImmersive()
-                            },
-                            leadingIcon = {
-                                Icon(HugeIcons.View, null)
-                            }
-                        )
-                    }
+                    val isImmersive = settings.displaySetting.immersiveChatMode
+                    DropdownMenuItem(
+                        text = { Text(if (isImmersive) "关闭沉浸模式" else "沉浸聊天模式") },
+                        onClick = {
+                            showMenu = false
+                            onToggleImmersive()
+                        },
+                        leadingIcon = {
+                            Icon(if (isImmersive) HugeIcons.ViewOff else HugeIcons.View, null)
+                        }
+                    )
+                    HorizontalDivider()
+                    DropdownMenuItem(
+                        text = { Text(if (previewMode) stringResource(R.string.cancel) else stringResource(R.string.more_options)) },
+                        onClick = {
+                            showMenu = false
+                            onClickMenu()
+                        },
+                        leadingIcon = {
+                            Icon(if (previewMode) HugeIcons.Cancel01 else HugeIcons.LeftToRightListBullet, null)
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.chat_page_new_chat)) },
+                        onClick = {
+                            showMenu = false
+                            onNewChat()
+                        },
+                        leadingIcon = {
+                            Icon(HugeIcons.MessageAdd01, null)
+                        }
+                    )
                 }
             }
         },
