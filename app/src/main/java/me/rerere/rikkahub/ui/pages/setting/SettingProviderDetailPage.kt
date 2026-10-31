@@ -548,8 +548,14 @@ private fun ModelList(
                     val apiModelIds = modelList.map { it.modelId }.toSet()
                     val savedModelIds = providerSetting.models.map { it.modelId }.toSet()
 
-                    // 保留仍在线的已保存模型（保持自定义设置不变）
-                    val kept = providerSetting.models.filter { it.modelId in apiModelIds }
+                    // 保留仍在线的已保存模型（保持自定义设置不变，但刷新 abilities/modalities）
+                    val kept = providerSetting.models.filter { it.modelId in apiModelIds }.map { model ->
+                        model.copy(
+                            inputModalities = ModelRegistry.MODEL_INPUT_MODALITIES.getData(model.modelId),
+                            outputModalities = ModelRegistry.MODEL_OUTPUT_MODALITIES.getData(model.modelId),
+                            abilities = ModelRegistry.MODEL_ABILITIES.getData(model.modelId)
+                        )
+                    }
                     // 添加新上架的模型
                     val added = modelList.filter { it.modelId !in savedModelIds }.map { model ->
                         model.copy(
