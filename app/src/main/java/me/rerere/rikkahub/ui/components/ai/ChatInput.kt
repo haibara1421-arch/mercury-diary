@@ -339,30 +339,28 @@ fun ChatInput(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                            Row(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(2.dp)
-                            ) {
-                                // Model Picker
-                                ModelSelectorButton(
-                                    state = modelListState,
+                        Row(
+                            modifier = Modifier
+                                .weight(1f)
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            // Model Picker
+                            ModelSelectorButton(
+                                state = modelListState,
+                                onlyIcon = true,
+                                modifier = Modifier,
+                            )
+
+                            // Reasoning
+                            if (chatModel?.abilities?.contains(ModelAbility.REASONING) == true) {
+                                ReasoningButton(
+                                    reasoningLevel = assistant.reasoningLevel,
+                                    onUpdateReasoningLevel = {
+                                        onUpdateAssistant(assistant.copy(reasoningLevel = it))
+                                    },
                                     onlyIcon = true,
-                                    modifier = Modifier,
                                 )
-
-                                // Reasoning
-                                if (chatModel?.abilities?.contains(ModelAbility.REASONING) == true) {
-                                    ReasoningButton(
-                                        reasoningLevel = assistant.reasoningLevel,
-                                        onUpdateReasoningLevel = {
-                                            onUpdateAssistant(assistant.copy(reasoningLevel = it))
-                                        },
-                                        onlyIcon = true,
-                                    )
-                                }
-
                             }
                         }
 
@@ -375,7 +373,7 @@ fun ChatInput(
                             )
                         }
 
-                        if (!settings.displaySetting.immersiveChatMode && !voiceState.isActive && (asrState.isAvailable || asrState.isRecording)) {
+                        if (!voiceState.isActive && (asrState.isAvailable || asrState.isRecording)) {
                             AsrButton(
                                 state = asrState,
                                 onClick = {
@@ -416,7 +414,8 @@ fun ChatInput(
                                 onLongClick = { sendMessageWithoutAnswer() },
                             )
                         }
-                    }
+                    } // Row
+                    } // if (!immersiveChatMode)
                 }
             }
 

@@ -446,7 +446,7 @@ private fun MessagePartsBlock(
                             visual = true,
                         )
                         // 气泡拆分：按连续空行拆成多段，每段独立气泡
-                        val textSegments = if (settings.displaySetting.enableBubbleSplit && !streamingText) {
+                        val textSegments = if ((settings.displaySetting.enableBubbleSplit || settings.displaySetting.immersiveChatMode) && !streamingText) {
                             processedText.split(Regex("\n\n+")).filter { it.isNotBlank() }
                         } else {
                             listOf(processedText)
