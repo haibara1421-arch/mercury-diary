@@ -271,6 +271,10 @@ fun ChatMessageActionsSheet(
     onTranslate: ((UIMessage, Locale) -> Unit)? = null,
     onClearTranslation: ((UIMessage) -> Unit)? = null,
 ) {
+    val context = LocalContext.current
+    val settings = LocalSettings.current
+    var showTranslateDialog by remember { mutableStateOf(false) }
+
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)),
@@ -278,9 +282,6 @@ fun ChatMessageActionsSheet(
         // WebView Preview (only show if message has text content)
         val hasTextContent = message.parts.filterIsInstance<UIMessagePart.Text>()
             .any { it.text.isNotBlank() }
-        val context = LocalContext.current
-        val settings = LocalSettings.current
-        var showTranslateDialog by remember { mutableStateOf(false) }
         val actions = buildList {
             // Quick actions (copy, regenerate, TTS, translate) - always shown
             add(MessageSheetAction(HugeIcons.Copy01, stringResource(R.string.copy), onClick = {
