@@ -281,30 +281,34 @@ fun ChatInput(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .weight(1f)
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            // Model Picker
-                            ModelSelectorButton(
-                                state = modelListState,
-                                onlyIcon = true,
-                                modifier = Modifier,
-                            )
-
-                            // Reasoning
-                            if (chatModel?.abilities?.contains(ModelAbility.REASONING) == true) {
-                                ReasoningButton(
-                                    reasoningLevel = assistant.reasoningLevel,
-                                    onUpdateReasoningLevel = {
-                                        onUpdateAssistant(assistant.copy(reasoningLevel = it))
-                                    },
+                        if (!settings.displaySetting.simpleInputBar) {
+                            Row(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                // Model Picker
+                                ModelSelectorButton(
+                                    state = modelListState,
                                     onlyIcon = true,
+                                    modifier = Modifier,
                                 )
-                            }
 
+                                // Reasoning
+                                if (chatModel?.abilities?.contains(ModelAbility.REASONING) == true) {
+                                    ReasoningButton(
+                                        reasoningLevel = assistant.reasoningLevel,
+                                        onUpdateReasoningLevel = {
+                                            onUpdateAssistant(assistant.copy(reasoningLevel = it))
+                                        },
+                                        onlyIcon = true,
+                                    )
+                                }
+
+                            }
+                        } else {
+                            Spacer(modifier = Modifier.weight(1f))
                         }
 
                         ActionIconButton(

@@ -140,6 +140,8 @@ data class DisplaySetting(
     val showAssistantBubble: Boolean = false,
     val enableBubbleSplit: Boolean = false,
     val hideActionButtons: Boolean = false,
+    val simpleTopBar: Boolean = false,
+    val simpleInputBar: Boolean = false,
     val bubbleOpacity: Float = 1.0f,
     val showModelIcon: Boolean = true,
     val showModelName: Boolean = true,

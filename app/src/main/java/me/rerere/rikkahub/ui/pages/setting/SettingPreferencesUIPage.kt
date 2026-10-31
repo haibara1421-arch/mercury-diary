@@ -171,6 +171,18 @@ fun SettingPreferencesUIPage(vm: SettingVM = koinViewModel()) {
                         supportingContent = { Text("隐藏消息下方的操作按钮，长按气泡可打开操作菜单") },
                         headlineContent = { Text("隐藏操作栏") },
                     )
+                    switchItem(
+                        checked = displaySetting.simpleTopBar,
+                        onCheckedChange = { updateDisplaySetting(displaySetting.copy(simpleTopBar = it)) },
+                        supportingContent = { Text("隐藏对话标题和模型信息，只显示角色名称") },
+                        headlineContent = { Text("简洁顶栏") },
+                    )
+                    switchItem(
+                        checked = displaySetting.simpleInputBar,
+                        onCheckedChange = { updateDisplaySetting(displaySetting.copy(simpleInputBar = it)) },
+                        supportingContent = { Text("隐藏模型选择等工具按钮，只保留输入框、附件和发送") },
+                        headlineContent = { Text("简洁输入栏") },
+                    )
                 }
             }
 
