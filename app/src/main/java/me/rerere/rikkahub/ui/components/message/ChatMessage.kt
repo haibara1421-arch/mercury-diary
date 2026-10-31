@@ -93,6 +93,8 @@ import me.rerere.rikkahub.ui.components.ui.FaviconRow
 import me.rerere.rikkahub.ui.context.LocalNavController
 import me.rerere.rikkahub.ui.modifier.shimmer
 import me.rerere.rikkahub.ui.context.LocalSettings
+import kotlinx.datetime.toJavaLocalDateTime
+import me.rerere.rikkahub.utils.toMessageTimeString
 import me.rerere.rikkahub.ui.context.LocalWorkspaceId
 import me.rerere.rikkahub.ui.theme.LocalChatFontFamily
 import me.rerere.rikkahub.ui.theme.rememberChatFontFamily
@@ -233,12 +235,32 @@ fun ChatMessage(
             }
         }
 
-        // When action buttons are hidden but message has branches, show branch selector standalone
-        if (settings.hideActionButtons && node.messages.size > 1) {
-            ChatMessageBranchSelector(
-                node = node,
-                onUpdate = onUpdate,
-            )
+        // When action buttons are hidden, show branch selector and/or timestamp standalone
+        if (settings.hideActionButtons) {
+            val hasBranches = node.messages.size > 1
+            val showTime = settings.showDateTimeInMessage
+            if (hasBranches || showTime) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    if (hasBranches) {
+                        ChatMessageBranchSelector(
+                            node = node,
+                            onUpdate = onUpdate,
+                        )
+                    }
+                    if (showTime) {
+                        Text(
+                            text = message.createdAt.toJavaLocalDateTime().toMessageTimeString(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            maxLines = 1,
+                            modifier = Modifier.padding(horizontal = 4.dp),
+                        )
+                    }
+                }
+            }
         }
 
         EditedFilesList(
