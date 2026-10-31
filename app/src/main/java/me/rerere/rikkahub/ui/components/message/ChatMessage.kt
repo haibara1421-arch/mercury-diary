@@ -7,7 +7,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -187,6 +189,7 @@ fun ChatMessage(
                 onToolApproval = onToolApproval,
                 onToolAnswer = onToolAnswer,
                 onUserMessageClick = if (message.role == MessageRole.USER) onEdit else null,
+                onLongPressBubble = if (isBubbleSplit) {{ showActionsSheet = true }} else null,
             )
 
             message.translation?.let { translation ->
@@ -197,7 +200,10 @@ fun ChatMessage(
             }
         }
 
-        val showActions = if (lastMessage) {
+        val isBubbleSplit = settings.enableBubbleSplit
+        val showActions = if (isBubbleSplit) {
+            false // In bubble split mode, actions are accessed via long press
+        } else if (lastMessage) {
             !loading
         } else {
             message.parts.isEmptyUIMessage().not()
@@ -297,11 +303,13 @@ private fun MessagePartsBlock(
     onToolApproval: ((toolCallId: String, approved: Boolean, reason: String) -> Unit)? = null,
     onToolAnswer: ((toolCallId: String, answer: String) -> Unit)? = null,
     onUserMessageClick: (() -> Unit)? = null,
+    onLongPressBubble: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     // 消息输出HapticFeedback
     val hapticFeedback = LocalHapticFeedback.current
     val settings = LocalSettings.current
+    val isBubbleSplit = settings.displaySetting.enableBubbleSplit
     val partsState by rememberUpdatedState(parts)
 
     val handleClickCitation: (String) -> Unit = remember {
@@ -415,7 +423,7 @@ private fun MessagePartsBlock(
                         val textContent = @Composable {
                             if (role == MessageRole.USER) {
                                 Column(
-                                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
                                     horizontalAlignment = Alignment.End,
                                     modifier = Modifier.fillMaxWidth(),
                                 ) {
@@ -424,6 +432,7 @@ private fun MessagePartsBlock(
                                             role = role,
                                             color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = settings.displaySetting.bubbleOpacity),
                                             onClick = { onUserMessageClick?.invoke() },
+                                            onLongClick = if (isBubbleSplit) onLongPressBubble else null,
                                             // 用户气泡不占满整行，和助手的回复错开
                                             modifier = Modifier
                                                 .padding(start = 24.dp)
@@ -438,7 +447,7 @@ private fun MessagePartsBlock(
                                 }
                             } else {
                                 Column(
-                                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
                                     horizontalAlignment = Alignment.Start,
                                     modifier = Modifier.fillMaxWidth(),
                                 ) {
@@ -448,6 +457,7 @@ private fun MessagePartsBlock(
                                             ChatMessageBubble(
                                                 role = role,
                                                 color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = settings.displaySetting.bubbleOpacity),
+                                                onLongClick = if (isBubbleSplit) onLongPressBubble else null,
                                                 modifier = Modifier.animateContentSize(),
                                             ) {
                                                 MarkdownBlock(
@@ -568,11 +578,13 @@ private val BubblePressedCorner = 12.dp
  * 消息气泡：大圆角，靠头像一侧的顶角收紧；可点击时按下其余圆角也跟着收紧
  */
 @Composable
+@OptIn(ExperimentalFoundationApi::class)
 private fun ChatMessageBubble(
     role: MessageRole,
     color: Color,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -589,8 +601,13 @@ private fun ChatMessageBubble(
             .clipDrawing(shape)
             .background(color)
             .then(
-                if (onClick != null) {
-                    Modifier.clickable(interactionSource = interactionSource, indication = ripple(), onClick = onClick)
+                if (onClick != null || onLongClick != null) {
+                    Modifier.combinedClickable(
+                        interactionSource = interactionSource,
+                        indication = ripple(),
+                        onClick = { onClick?.invoke() },
+                        onLongClick = { onLongClick?.invoke() }
+                    )
                 } else {
                     Modifier
                 },
