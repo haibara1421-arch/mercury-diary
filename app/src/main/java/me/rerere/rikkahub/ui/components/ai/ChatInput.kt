@@ -417,7 +417,6 @@ fun ChatInput(
                             )
                         }
                     }
-                    } // end if (!immersiveChatMode)
                 }
             }
 
