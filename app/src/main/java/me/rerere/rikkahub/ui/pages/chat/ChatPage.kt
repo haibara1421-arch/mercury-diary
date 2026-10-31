@@ -721,7 +721,6 @@ private fun TopBar(
                             Icon(HugeIcons.MessageAdd01, null)
                         }
                     )
-                    HorizontalDivider()
                     DropdownMenuItem(
                         text = { Text("美化设置") },
                         onClick = {
