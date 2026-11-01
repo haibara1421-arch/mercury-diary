@@ -185,10 +185,17 @@ fun ChatInput(
         if (!settings.displaySetting.immersiveChatMode || autoReplyDelay <= 0) return
         cancelAutoReplyTimer()
         autoReplyJob = autoReplyScope.launch {
-            delay(autoReplyDelay * 1000L)
-            // 触发前检查：输入框有内容说明用户在打字，等打完再触发
-            while (state.textContent.text.isNotEmpty()) {
+            // 输入框必须持续为空 autoReplyDelay 秒才触发
+            // 打字→重置计时，清空后重新开始倒计时，删了重写→再次重置
+            var emptyMs = 0L
+            val targetMs = autoReplyDelay * 1000L
+            while (emptyMs < targetMs) {
                 delay(500L)
+                if (state.textContent.text.isEmpty()) {
+                    emptyMs += 500L
+                } else {
+                    emptyMs = 0L
+                }
             }
             onTriggerAIReply()
         }
