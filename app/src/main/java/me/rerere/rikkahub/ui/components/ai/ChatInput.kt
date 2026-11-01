@@ -94,12 +94,10 @@ import me.rerere.hugeicons.stroke.ArrowUp02
 import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.hugeicons.stroke.Fullscreen
 import me.rerere.hugeicons.stroke.Zap
+import me.rerere.hugeicons.stroke.AiMagic
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Stop
 import kotlinx.coroutines.Job
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.datastore.Settings
@@ -393,7 +391,7 @@ fun ChatInput(
                                 }
                             ) {
                                 Icon(
-                                    if (loading) Icons.Filled.Stop else Icons.Filled.PlayArrow,
+                                    if (loading) HugeIcons.Cancel01 else HugeIcons.AiMagic,
                                     contentDescription = null,
                                     modifier = Modifier.size(20.dp),
                                 )
