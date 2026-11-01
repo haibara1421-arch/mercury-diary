@@ -517,7 +517,7 @@ private fun SendButton(
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
-            .size(30.dp)
+            .size(36.dp)
             .testTag("chat_send_button")
             .clip(CircleShape)
             .combinedClickable(
@@ -544,14 +544,15 @@ private fun SendButton(
 @Composable
 private fun ActionIconButton(
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
     Surface(
         onClick = onClick,
-        modifier = Modifier.size(30.dp),
+        modifier = modifier.size(36.dp),
         shape = CircleShape,
         tonalElevation = 0.dp,
-        color = Color.Transparent,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
     ) {
         Box(
             modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
@@ -698,43 +699,46 @@ private fun TextInputRow(
             )
         }
 
-        TextField(
-            state = state.textContent,
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("chat_input")
-                .contentReceiver(receiveContentListener)
-                .onFocusChanged {
-                    isFocused = it.isFocused
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            // 沉浸模式：左侧按钮在 TextField 外面
+            if (immersiveLeadingIcon != null) {
+                immersiveLeadingIcon()
+            }
+
+            TextField(
+                state = state.textContent,
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("chat_input")
+                    .contentReceiver(receiveContentListener)
+                    .onFocusChanged {
+                        isFocused = it.isFocused
+                    },
+                shape = MaterialTheme.shapes.largeIncreased,
+                placeholder = {
+                    Text(stringResource(R.string.chat_input_placeholder))
                 },
-            shape = MaterialTheme.shapes.largeIncreased,
-            placeholder = {
-                Text(stringResource(R.string.chat_input_placeholder))
-            },
-            lineLimits = TextFieldLineLimits.MultiLine(maxHeightInLines = 5),
-            keyboardOptions = KeyboardOptions(
-                capitalization = KeyboardCapitalization.Sentences,
-                imeAction = if (settings.displaySetting.sendOnEnter) ImeAction.Send else ImeAction.Default
-            ),
-            onKeyboardAction = {
-                if (settings.displaySetting.sendOnEnter && !state.isEmpty()) {
-                    onSendMessage()
-                }
-            },
-            colors = TextFieldDefaults.colors().copy(
-                unfocusedIndicatorColor = Color.Transparent,
-                focusedIndicatorColor = Color.Transparent,
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-            ),
-            trailingIcon = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    if (immersiveTrailingIcons != null) {
-                        immersiveTrailingIcons()
-                    } else if (isFocused) {
+                lineLimits = TextFieldLineLimits.MultiLine(maxHeightInLines = 5),
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences,
+                    imeAction = if (settings.displaySetting.sendOnEnter) ImeAction.Send else ImeAction.Default
+                ),
+                onKeyboardAction = {
+                    if (settings.displaySetting.sendOnEnter && !state.isEmpty()) {
+                        onSendMessage()
+                    }
+                },
+                colors = TextFieldDefaults.colors().copy(
+                    unfocusedIndicatorColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                ),
+                trailingIcon = if (immersiveTrailingIcons == null) {{
+                    if (isFocused) {
                         IconButton(
                             onClick = {
                                 isFullScreen = !isFullScreen
@@ -742,14 +746,21 @@ private fun TextInputRow(
                             Icon(HugeIcons.Fullscreen, null)
                         }
                     }
-                }
-            },
-            leadingIcon = when {
-                immersiveLeadingIcon != null -> immersiveLeadingIcon
-                quickMessages.isNotEmpty() -> {{ QuickMessageButton(quickMessages = quickMessages, state = state) }}
-                else -> null
-            },
-        )
+                }} else null,
+                leadingIcon = when {
+                    immersiveLeadingIcon != null -> null  // 已移到外面
+                    quickMessages.isNotEmpty() -> {{ QuickMessageButton(quickMessages = quickMessages, state = state) }}
+                    else -> null
+                },
+            )
+
+            // 沉浸模式：右侧按钮在 TextField 外面
+            if (immersiveTrailingIcons != null) {
+                immersiveTrailingIcons()
+            } else if (isFocused) {
+                // 非沉浸模式聚焦时不额外显示（fullscreen 已在 trailingIcon 里）
+            }
+        }
         if (isFullScreen) {
             FullScreenEditor(
                 textState = state.textContent,
