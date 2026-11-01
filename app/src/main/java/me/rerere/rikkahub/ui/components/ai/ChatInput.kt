@@ -173,6 +173,17 @@ fun ChatInput(
 
     // ---- 沉浸模式自动回复 ----
     val autoReplyDelay = settings.displaySetting.immersiveAutoReplyDelay
+    var inputFocused by remember { mutableStateOf(false) }
+
+    // 输入框没有焦点 + 内容为空 → 等N秒触发AI回复
+    // 点进输入框（获得焦点）→ LaunchedEffect重启 → 倒计时取消
+    LaunchedEffect(inputFocused, settings.displaySetting.immersiveChatMode, autoReplyDelay) {
+        if (!settings.displaySetting.immersiveChatMode || autoReplyDelay <= 0) return@LaunchedEffect
+        if (inputFocused || loading) return@LaunchedEffect
+        if (state.textContent.text.isNotEmpty()) return@LaunchedEffect
+        delay(autoReplyDelay * 1000L)
+        onTriggerAIReply()
+    }
 
     fun sendMessage() {
         focusManager.clearFocus(force = true)
@@ -288,6 +299,7 @@ fun ChatInput(
                         assistant = assistant,
                         completionProviders = completionProviders,
                         onSendMessage = { sendMessage() },
+                        onFocusChanged = { inputFocused = it },
                         immersiveLeadingIcon = if (settings.displaySetting.immersiveChatMode) {{
                             var showModelMenu by remember { mutableStateOf(false) }
                             var showReasoningPicker by remember { mutableStateOf(false) }
@@ -544,6 +556,7 @@ private fun TextInputRow(
     assistant: Assistant,
     completionProviders: List<ChatCompletionProvider>,
     onSendMessage: () -> Unit,
+    onFocusChanged: (Boolean) -> Unit = {},
     immersiveLeadingIcon: (@Composable () -> Unit)? = null,
     immersiveTrailingIcons: (@Composable RowScope.() -> Unit)? = null,
 ) {
@@ -589,14 +602,9 @@ private fun TextInputRow(
         var isFocused by remember { mutableStateOf(false) }
         var isFullScreen by remember { mutableStateOf(false) }
 
-        // 沉浸模式自动回复：输入框没有焦点 + 内容为空 → 等N秒触发AI回复
-        // 点进输入框（获得焦点）→ 倒计时自动取消（LaunchedEffect重启）
-        LaunchedEffect(isFocused, settings.displaySetting.immersiveChatMode, autoReplyDelay) {
-            if (!settings.displaySetting.immersiveChatMode || autoReplyDelay <= 0) return@LaunchedEffect
-            if (isFocused || loading) return@LaunchedEffect
-            if (state.textContent.text.isNotEmpty()) return@LaunchedEffect
-            delay(autoReplyDelay * 1000L)
-            onTriggerAIReply()
+        // 通知外部焦点变化
+        LaunchedEffect(isFocused) {
+            onFocusChanged(isFocused)
         }
         var completionList by remember { mutableStateOf<ChatCompletionList?>(null) }
         val receiveContentListener = remember(
