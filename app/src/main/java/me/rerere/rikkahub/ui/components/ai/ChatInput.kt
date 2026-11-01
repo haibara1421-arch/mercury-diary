@@ -171,35 +171,8 @@ fun ChatInput(
         type = ModelType.CHAT,
     )
 
-    // ---- 沉浸模式自动回复计时器 ----
-    val autoReplyScope = rememberCoroutineScope()
-    var autoReplyJob by remember { mutableStateOf<Job?>(null) }
+    // ---- 沉浸模式自动回复 ----
     val autoReplyDelay = settings.displaySetting.immersiveAutoReplyDelay
-
-    fun cancelAutoReplyTimer() {
-        autoReplyJob?.cancel()
-        autoReplyJob = null
-    }
-
-    fun startAutoReplyTimer() {
-        if (!settings.displaySetting.immersiveChatMode || autoReplyDelay <= 0) return
-        cancelAutoReplyTimer()
-        autoReplyJob = autoReplyScope.launch {
-            // 输入框必须持续为空 autoReplyDelay 秒才触发
-            // 打字→重置计时，清空后重新开始倒计时，删了重写→再次重置
-            var emptyMs = 0L
-            val targetMs = autoReplyDelay * 1000L
-            while (emptyMs < targetMs) {
-                delay(500L)
-                if (state.textContent.text.isEmpty()) {
-                    emptyMs += 500L
-                } else {
-                    emptyMs = 0L
-                }
-            }
-            onTriggerAIReply()
-        }
-    }
 
     fun sendMessage() {
         focusManager.clearFocus(force = true)
@@ -214,8 +187,6 @@ fun ChatInput(
             onCancelClick()
         } else {
             onLongSendClick()
-            // 消息已发出，启动自动回复倒计时
-            startAutoReplyTimer()
         }
     }
 
@@ -619,6 +590,16 @@ private fun TextInputRow(
 
         var isFocused by remember { mutableStateOf(false) }
         var isFullScreen by remember { mutableStateOf(false) }
+
+        // 沉浸模式自动回复：输入框没有焦点 + 内容为空 → 等N秒触发AI回复
+        // 点进输入框（获得焦点）→ 倒计时自动取消（LaunchedEffect重启）
+        LaunchedEffect(isFocused, settings.displaySetting.immersiveChatMode, autoReplyDelay) {
+            if (!settings.displaySetting.immersiveChatMode || autoReplyDelay <= 0) return@LaunchedEffect
+            if (isFocused || loading) return@LaunchedEffect
+            if (state.textContent.text.isNotEmpty()) return@LaunchedEffect
+            delay(autoReplyDelay * 1000L)
+            onTriggerAIReply()
+        }
         var completionList by remember { mutableStateOf<ChatCompletionList?>(null) }
         val receiveContentListener = remember(
             settings.displaySetting.pasteLongTextAsFile, settings.displaySetting.pasteLongTextThreshold
