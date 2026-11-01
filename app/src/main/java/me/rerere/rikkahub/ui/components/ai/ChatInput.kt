@@ -341,11 +341,9 @@ fun ChatInput(
                                 ActionIconButton(
                                     onClick = {
                                         if (loading) {
-                                            cancelAutoReplyTimer()
-                                            onCancelClick()
+                                                                                        onCancelClick()
                                         } else {
-                                            cancelAutoReplyTimer()
-                                            onTriggerAIReply()
+                                                                                        onTriggerAIReply()
                                         }
                                     }
                                 ) {
