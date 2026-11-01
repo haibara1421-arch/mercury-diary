@@ -97,7 +97,9 @@ import me.rerere.hugeicons.stroke.Zap
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
-import me.rerere.hugeicons.stroke.MessageAdd01
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Stop
 import kotlinx.coroutines.Job
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.datastore.Settings
@@ -378,7 +380,7 @@ fun ChatInput(
                                     }
                                 }
                             }
-                            // 💬 AI 回复 / ⏹ 停止
+                            // ▶ AI 回复 / ■ 停止
                             ActionIconButton(
                                 onClick = {
                                     if (loading) {
@@ -391,11 +393,9 @@ fun ChatInput(
                                 }
                             ) {
                                 Icon(
-                                    if (loading) HugeIcons.Cancel01 else HugeIcons.MessageAdd01,
+                                    if (loading) Icons.Filled.Stop else Icons.Filled.PlayArrow,
                                     contentDescription = null,
                                     modifier = Modifier.size(20.dp),
-                                    tint = if (loading) MaterialTheme.colorScheme.error
-                                           else MaterialTheme.colorScheme.onSurface,
                                 )
                             }
                             } // end Row
