@@ -186,23 +186,13 @@ fun ChatInput(
         cancelAutoReplyTimer()
         autoReplyJob = autoReplyScope.launch {
             delay(autoReplyDelay * 1000L)
-            // 倒计时结束直接触发，triggerAIReply 内部有防重复机制
+            // 触发前检查：输入框有内容说明用户在打字，等打完再触发
+            while (state.textContent.text.isNotEmpty()) {
+                delay(500L)
+            }
             onTriggerAIReply()
         }
     }
-
-    // 输入框有内容时取消倒计时（用户在继续打字）
-    LaunchedEffect(Unit) {
-        if (!settings.displaySetting.immersiveChatMode || autoReplyDelay <= 0) return@LaunchedEffect
-        snapshotFlow { state.textContent.text.toString() }
-            .collectLatest { text ->
-                if (text.isNotEmpty()) cancelAutoReplyTimer()
-            }
-    }
-
-    // 注意：不在 loading 变化时取消倒计时
-    // 因为 answer=false 的发送也会短暂触发 loading=true，会误杀计时器
-    // triggerAIReply 内部有 getJob()!=null 防重复，timer 在生成中触发也无害
 
     fun sendMessage() {
         focusManager.clearFocus(force = true)
