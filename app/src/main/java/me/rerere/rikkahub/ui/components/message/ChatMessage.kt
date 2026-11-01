@@ -93,6 +93,10 @@ import me.rerere.rikkahub.ui.components.ui.FaviconRow
 import me.rerere.rikkahub.ui.context.LocalNavController
 import me.rerere.rikkahub.ui.modifier.shimmer
 import me.rerere.rikkahub.ui.context.LocalSettings
+import me.rerere.rikkahub.utils.removeBracketedContent
+import me.rerere.rikkahub.utils.extractQuotedContentAsText
+import androidx.compose.runtime.collectAsState
+import me.rerere.rikkahub.ui.context.LocalTTSState
 import kotlinx.datetime.toJavaLocalDateTime
 import me.rerere.rikkahub.utils.toMessageTimeString
 import me.rerere.rikkahub.ui.context.LocalWorkspaceId
@@ -341,7 +345,28 @@ private fun MessagePartsBlock(
     // 消息输出HapticFeedback
     val hapticFeedback = LocalHapticFeedback.current
     val settings = LocalSettings.current
+    val tts = LocalTTSState.current
+    val isSpeaking by tts.isSpeaking.collectAsState()
     val partsState by rememberUpdatedState(parts)
+
+    // 沉浸模式下单击助手气泡 → TTS 朗读/停止
+    val onClickBubbleTTS: (() -> Unit)? = if (
+        settings.displaySetting.immersiveChatMode && role == MessageRole.ASSISTANT
+    ) {{
+        if (isSpeaking) {
+            tts.stop()
+        } else {
+            val text = parts.filterIsInstance<UIMessagePart.Text>().joinToString("\n") { it.text }
+            var textToSpeak = text
+            if (settings.displaySetting.ttsOnlyReadQuoted) {
+                textToSpeak = textToSpeak.extractQuotedContentAsText() ?: textToSpeak
+            }
+            if (settings.displaySetting.ttsOnlyReadOutsideBrackets) {
+                textToSpeak = textToSpeak.removeBracketedContent() ?: textToSpeak
+            }
+            tts.speak(textToSpeak)
+        }
+    }} else null
 
     val handleClickCitation: (String) -> Unit = remember {
         handler@{ citationId ->
@@ -490,6 +515,7 @@ private fun MessagePartsBlock(
                                             ChatMessageBubble(
                                                 role = role,
                                                 color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = settings.displaySetting.bubbleOpacity),
+                                                onClick = onClickBubbleTTS,
                                                 onLongClick = onLongPressBubble,
                                                 modifier = Modifier.animateContentSize(),
                                             ) {
