@@ -277,6 +277,16 @@ fun ChatInput(
                         onSendMessage = { sendMessage() },
                         immersiveLeadingIcon = if (settings.displaySetting.immersiveChatMode) {{
                             var showModelMenu by remember { mutableStateOf(false) }
+                            var showReasoningPicker by remember { mutableStateOf(false) }
+                            if (showReasoningPicker) {
+                                ReasoningPicker(
+                                    reasoningLevel = assistant.reasoningLevel,
+                                    onDismissRequest = { showReasoningPicker = false },
+                                    onUpdateReasoningLevel = {
+                                        onUpdateAssistant(assistant.copy(reasoningLevel = it))
+                                    }
+                                )
+                            }
                             Box {
                                 IconButton(onClick = { showModelMenu = true }, modifier = Modifier.size(36.dp)) {
                                     Icon(HugeIcons.Zap, contentDescription = null, modifier = Modifier.size(20.dp))
@@ -293,25 +303,11 @@ fun ChatInput(
                                         },
                                     )
                                     if (chatModel?.abilities?.contains(ModelAbility.REASONING) == true) {
-                                        val levelText = when (assistant.reasoningLevel) {
-                                            ReasoningLevel.OFF -> "关闭"
-                                            ReasoningLevel.AUTO -> "自动"
-                                            ReasoningLevel.LOW -> "低"
-                                            ReasoningLevel.MEDIUM -> "中"
-                                            ReasoningLevel.HIGH -> "高"
-                                            else -> assistant.reasoningLevel.name
-                                        }
                                         DropdownMenuItem(
-                                            text = { Text("推理: $levelText") },
+                                            text = { Text("推理: ${assistant.reasoningLevel.label()}") },
                                             onClick = {
-                                                val next = when (assistant.reasoningLevel) {
-                                                    ReasoningLevel.OFF -> ReasoningLevel.AUTO
-                                                    ReasoningLevel.AUTO -> ReasoningLevel.LOW
-                                                    ReasoningLevel.LOW -> ReasoningLevel.MEDIUM
-                                                    ReasoningLevel.MEDIUM -> ReasoningLevel.HIGH
-                                                    else -> ReasoningLevel.OFF
-                                                }
-                                                onUpdateAssistant(assistant.copy(reasoningLevel = next))
+                                                showModelMenu = false
+                                                showReasoningPicker = true
                                             },
                                         )
                                     }
