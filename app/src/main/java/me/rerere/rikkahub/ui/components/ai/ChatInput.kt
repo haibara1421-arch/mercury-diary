@@ -176,36 +176,31 @@ fun ChatInput(
     var autoReplyJob by remember { mutableStateOf<Job?>(null) }
     val autoReplyDelay = settings.displaySetting.immersiveAutoReplyDelay
 
-    fun startAutoReplyTimer() {
-        if (!settings.displaySetting.immersiveChatMode || autoReplyDelay <= 0) return
-        autoReplyJob?.cancel()
-        autoReplyJob = autoReplyScope.launch {
-            delay(autoReplyDelay * 1000L)
-            if (state.isEmpty() && !loading) {
-                onTriggerAIReply()
-            }
-        }
-    }
-
     fun cancelAutoReplyTimer() {
         autoReplyJob?.cancel()
         autoReplyJob = null
     }
 
-    // 输入框文字变化：有文字则取消，清空且有待发消息则开始计时
+    fun startAutoReplyTimer() {
+        if (!settings.displaySetting.immersiveChatMode || autoReplyDelay <= 0) return
+        cancelAutoReplyTimer()
+        autoReplyJob = autoReplyScope.launch {
+            delay(autoReplyDelay * 1000L)
+            // 倒计时结束直接触发，triggerAIReply 内部有防重复机制
+            onTriggerAIReply()
+        }
+    }
+
+    // 输入框有内容时取消倒计时（用户在继续打字）
     LaunchedEffect(Unit) {
         if (!settings.displaySetting.immersiveChatMode || autoReplyDelay <= 0) return@LaunchedEffect
         snapshotFlow { state.textContent.text.toString() }
             .collectLatest { text ->
-                if (text.isNotEmpty()) {
-                    cancelAutoReplyTimer()
-                } else if (messageQueue.messages.isNotEmpty() && !loading) {
-                    startAutoReplyTimer()
-                }
+                if (text.isNotEmpty()) cancelAutoReplyTimer()
             }
     }
 
-    // loading 状态变化时取消计时
+    // 开始生成时取消倒计时
     LaunchedEffect(loading) {
         if (loading) cancelAutoReplyTimer()
     }
@@ -327,10 +322,6 @@ fun ChatInput(
                         completionProviders = completionProviders,
                         onSendMessage = { sendMessage() },
                         immersiveLeadingIcon = if (settings.displaySetting.immersiveChatMode) {{
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(2.dp),
-                            ) {
                             var showModelMenu by remember { mutableStateOf(false) }
                             var showReasoningPicker by remember { mutableStateOf(false) }
                             if (showReasoningPicker) {
@@ -342,61 +333,62 @@ fun ChatInput(
                                     }
                                 )
                             }
-                            // ⚡ 模型/推理菜单
-                            Box {
-                                IconButton(onClick = { showModelMenu = true }, modifier = Modifier.size(36.dp)) {
-                                    Icon(HugeIcons.Zap, contentDescription = null, modifier = Modifier.size(20.dp))
-                                }
-                                DropdownMenu(
-                                    expanded = showModelMenu,
-                                    onDismissRequest = { showModelMenu = false }
-                                ) {
-                                    val providerName = remember(chatModel, settings.providers) {
-                                        chatModel?.let { model ->
-                                            settings.providers.find { p -> p.models.any { it.id == model.id } }?.name
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                // ⚡ 模型/推理菜单
+                                Box {
+                                    ActionIconButton(onClick = { showModelMenu = true }) {
+                                        Icon(HugeIcons.Zap, contentDescription = null, modifier = Modifier.size(20.dp))
+                                    }
+                                    DropdownMenu(
+                                        expanded = showModelMenu,
+                                        onDismissRequest = { showModelMenu = false }
+                                    ) {
+                                        val providerName = remember(chatModel, settings.providers) {
+                                            chatModel?.let { model ->
+                                                settings.providers.find { p -> p.models.any { it.id == model.id } }?.name
+                                            }
                                         }
-                                    }
-                                    val modelLabel = buildString {
-                                        append(chatModel?.displayName ?: "选择模型")
-                                        if (providerName != null) append(" ($providerName)")
-                                    }
-                                    DropdownMenuItem(
-                                        text = { Text(modelLabel) },
-                                        onClick = {
-                                            showModelMenu = false
-                                            modelListState.open()
-                                        },
-                                    )
-                                    if (chatModel?.abilities?.contains(ModelAbility.REASONING) == true) {
+                                        val modelLabel = buildString {
+                                            append(chatModel?.displayName ?: "选择模型")
+                                            if (providerName != null) append(" ($providerName)")
+                                        }
                                         DropdownMenuItem(
-                                            text = { Text("推理: ${assistant.reasoningLevel.label()}") },
+                                            text = { Text(modelLabel) },
                                             onClick = {
                                                 showModelMenu = false
-                                                showReasoningPicker = true
+                                                modelListState.open()
                                             },
                                         )
+                                        if (chatModel?.abilities?.contains(ModelAbility.REASONING) == true) {
+                                            DropdownMenuItem(
+                                                text = { Text("推理: ${assistant.reasoningLevel.label()}") },
+                                                onClick = {
+                                                    showModelMenu = false
+                                                    showReasoningPicker = true
+                                                },
+                                            )
+                                        }
                                     }
                                 }
-                            }
-                            // ▶ AI 回复 / ■ 停止
-                            ActionIconButton(
-                                onClick = {
-                                    if (loading) {
-                                        cancelAutoReplyTimer()
-                                        onCancelClick()
-                                    } else {
-                                        cancelAutoReplyTimer()
-                                        onTriggerAIReply()
+                                // ✨ AI 回复 / ✕ 停止
+                                ActionIconButton(
+                                    onClick = {
+                                        if (loading) {
+                                            cancelAutoReplyTimer()
+                                            onCancelClick()
+                                        } else {
+                                            cancelAutoReplyTimer()
+                                            onTriggerAIReply()
+                                        }
                                     }
+                                ) {
+                                    Icon(
+                                        if (loading) HugeIcons.Cancel01 else HugeIcons.AiMagic,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp),
+                                    )
                                 }
-                            ) {
-                                Icon(
-                                    if (loading) HugeIcons.Cancel01 else HugeIcons.AiMagic,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp),
-                                )
                             }
-                            } // end Row
                         }} else null,
                         immersiveTrailingIcons = if (settings.displaySetting.immersiveChatMode) {{
                             ActionIconButton(onClick = onMoreClick) {
