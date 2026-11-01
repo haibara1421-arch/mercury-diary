@@ -200,10 +200,9 @@ fun ChatInput(
             }
     }
 
-    // 开始生成时取消倒计时
-    LaunchedEffect(loading) {
-        if (loading) cancelAutoReplyTimer()
-    }
+    // 注意：不在 loading 变化时取消倒计时
+    // 因为 answer=false 的发送也会短暂触发 loading=true，会误杀计时器
+    // triggerAIReply 内部有 getJob()!=null 防重复，timer 在生成中触发也无害
 
     fun sendMessage() {
         focusManager.clearFocus(force = true)
