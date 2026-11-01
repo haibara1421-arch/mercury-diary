@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -111,6 +112,8 @@ import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.uuid.Uuid
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 
 @Composable
 fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null) {
@@ -878,6 +881,55 @@ private fun BeautySettingsSheet(
                 checked = displaySetting.autoCloseThinking,
                 onCheckedChange = { onUpdateDisplaySetting(displaySetting.copy(autoCloseThinking = it)) },
             )
+
+            // 沉浸模式自动回复
+            if (displaySetting.immersiveChatMode) {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                Text(
+                    text = "沉浸模式",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                )
+
+                // 自动回复开关
+                BeautySwitch(
+                    title = "自动回复",
+                    subtitle = "发送消息后自动触发AI回复",
+                    checked = displaySetting.immersiveAutoReplyDelay > 0,
+                    onCheckedChange = {
+                        onUpdateDisplaySetting(displaySetting.copy(
+                            immersiveAutoReplyDelay = if (it) 5 else 0
+                        ))
+                    },
+                )
+
+                // 等待秒数输入
+                if (displaySetting.immersiveAutoReplyDelay > 0) {
+                    var delayText by remember(displaySetting.immersiveAutoReplyDelay) {
+                        mutableStateOf(displaySetting.immersiveAutoReplyDelay.toString())
+                    }
+                    ListItem(
+                        headlineContent = { Text("等待秒数") },
+                        supportingContent = { Text("发送消息后等待多少秒再触发回复") },
+                        trailingContent = {
+                            OutlinedTextField(
+                                value = delayText,
+                                onValueChange = { value ->
+                                    delayText = value
+                                    val num = value.toIntOrNull()
+                                    if (num != null && num in 1..60) {
+                                        onUpdateDisplaySetting(displaySetting.copy(immersiveAutoReplyDelay = num))
+                                    }
+                                },
+                                modifier = Modifier.width(64.dp),
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            )
+                        },
+                    )
+                }
+            }
         }
     }
 }
