@@ -173,15 +173,19 @@ fun ChatInput(
 
     // ---- 沉浸模式自动回复 ----
     val autoReplyDelay = settings.displaySetting.immersiveAutoReplyDelay
+    val autoReplyEnabled = settings.displaySetting.immersiveAutoReply
     var inputFocused by remember { mutableStateOf(false) }
+    var pendingReply by remember { mutableStateOf(false) }
 
-    // 输入框没有焦点 + 内容为空 → 等N秒触发AI回复
-    // 点进输入框（获得焦点）→ LaunchedEffect重启 → 倒计时取消
-    LaunchedEffect(inputFocused, settings.displaySetting.immersiveChatMode, autoReplyDelay) {
-        if (!settings.displaySetting.immersiveChatMode || autoReplyDelay <= 0) return@LaunchedEffect
+    // 自动回复开关开启时：发过消息 + 没焦点 + 输入框空 → 等N秒触发
+    LaunchedEffect(inputFocused, pendingReply, autoReplyEnabled, autoReplyDelay) {
+        if (!settings.displaySetting.immersiveChatMode) return@LaunchedEffect
+        if (!autoReplyEnabled || autoReplyDelay <= 0) return@LaunchedEffect
+        if (!pendingReply) return@LaunchedEffect
         if (inputFocused || loading) return@LaunchedEffect
         if (state.textContent.text.isNotEmpty()) return@LaunchedEffect
         delay(autoReplyDelay * 1000L)
+        pendingReply = false
         onTriggerAIReply()
     }
 
@@ -198,6 +202,7 @@ fun ChatInput(
             onCancelClick()
         } else {
             onLongSendClick()
+            pendingReply = true
         }
     }
 
