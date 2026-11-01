@@ -464,7 +464,7 @@ private fun MessagePartsBlock(
                 when (val part = block.part) {
                     is UIMessagePart.Text -> {
                         // 跳过空文本（工具调用间的空 content）
-                        if (part.text.isBlank()) return@key
+                        if (part.text.isNotBlank()) {
                         // 只有正在生成的最后一段文字可能停在没写完的语法上
                         val streamingText = loading && block.index == parts.lastIndex
                         val processedText = part.text.replaceRegexes(
@@ -543,6 +543,7 @@ private fun MessagePartsBlock(
                         SelectableContent {
                             textContent()
                         }
+                        } // end if (part.text.isNotBlank())
                     }
 
                     is UIMessagePart.Video -> {
