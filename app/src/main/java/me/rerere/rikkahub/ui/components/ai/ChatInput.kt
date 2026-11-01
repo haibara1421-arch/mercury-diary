@@ -177,7 +177,7 @@ fun ChatInput(
     val autoReplyDelay = settings.displaySetting.immersiveAutoReplyDelay
 
     fun startAutoReplyTimer() {
-        if (!settings.displaySetting.immersiveChatMode || autoReplyDelay <= 0 || loading) return
+        if (!settings.displaySetting.immersiveChatMode || autoReplyDelay <= 0) return
         autoReplyJob?.cancel()
         autoReplyJob = autoReplyScope.launch {
             delay(autoReplyDelay * 1000L)
@@ -223,7 +223,8 @@ fun ChatInput(
             onCancelClick()
         } else {
             onLongSendClick()
-            if (state.isEmpty()) startAutoReplyTimer()
+            // 消息已发出，启动自动回复倒计时
+            startAutoReplyTimer()
         }
     }
 
@@ -326,6 +327,10 @@ fun ChatInput(
                         completionProviders = completionProviders,
                         onSendMessage = { sendMessage() },
                         immersiveLeadingIcon = if (settings.displaySetting.immersiveChatMode) {{
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                            ) {
                             var showModelMenu by remember { mutableStateOf(false) }
                             var showReasoningPicker by remember { mutableStateOf(false) }
                             if (showReasoningPicker) {
@@ -393,6 +398,7 @@ fun ChatInput(
                                            else MaterialTheme.colorScheme.onSurface,
                                 )
                             }
+                            } // end Row
                         }} else null,
                         immersiveTrailingIcons = if (settings.displaySetting.immersiveChatMode) {{
                             ActionIconButton(onClick = onMoreClick) {
