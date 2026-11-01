@@ -146,6 +146,8 @@ class ChatVM(
 
     fun resumeMessageQueue() = chatService.resumeMessageQueue(_conversationId)
 
+    fun triggerAIReply() = chatService.triggerAIReply(_conversationId)
+
     // 生成完成
     val generationDoneFlow: SharedFlow<Uuid> = chatService.generationDoneFlow
 

@@ -94,6 +94,11 @@ import me.rerere.hugeicons.stroke.ArrowUp02
 import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.hugeicons.stroke.Fullscreen
 import me.rerere.hugeicons.stroke.Zap
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import me.rerere.hugeicons.stroke.MessageAdd01
+import kotlinx.coroutines.Job
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.data.datastore.getQuickMessagesOfAssistant
@@ -142,6 +147,7 @@ fun ChatInput(
     onBeginEditQueuedMessage: (Uuid) -> QueuedMessage? = { null },
     onFinishEditQueuedMessage: (Uuid, List<UIMessagePart>?) -> Unit = { _, _ -> },
     onResumeMessageQueue: () -> Unit = {},
+    onTriggerAIReply: () -> Unit = {},
     onStartVoiceMode: (() -> Unit)? = null,
     voiceState: VoiceSessionState = VoiceSessionState(),
     onStopVoiceMode: () -> Unit = {},
@@ -165,6 +171,45 @@ fun ChatInput(
         type = ModelType.CHAT,
     )
 
+    // ---- 沉浸模式自动回复计时器 ----
+    val autoReplyScope = rememberCoroutineScope()
+    var autoReplyJob by remember { mutableStateOf<Job?>(null) }
+    val autoReplyDelay = settings.displaySetting.immersiveAutoReplyDelay
+
+    fun startAutoReplyTimer() {
+        if (!settings.displaySetting.immersiveChatMode || autoReplyDelay <= 0 || loading) return
+        autoReplyJob?.cancel()
+        autoReplyJob = autoReplyScope.launch {
+            delay(autoReplyDelay * 1000L)
+            if (state.isEmpty() && !loading) {
+                onTriggerAIReply()
+            }
+        }
+    }
+
+    fun cancelAutoReplyTimer() {
+        autoReplyJob?.cancel()
+        autoReplyJob = null
+    }
+
+    // 输入框文字变化：有文字则取消，清空且有待发消息则开始计时
+    LaunchedEffect(Unit) {
+        if (!settings.displaySetting.immersiveChatMode || autoReplyDelay <= 0) return@LaunchedEffect
+        snapshotFlow { state.textContent.text.toString() }
+            .collectLatest { text ->
+                if (text.isNotEmpty()) {
+                    cancelAutoReplyTimer()
+                } else if (messageQueue.messages.isNotEmpty() && !loading) {
+                    startAutoReplyTimer()
+                }
+            }
+    }
+
+    // loading 状态变化时取消计时
+    LaunchedEffect(loading) {
+        if (loading) cancelAutoReplyTimer()
+    }
+
     fun sendMessage() {
         focusManager.clearFocus(force = true)
         keyboardController?.hide()
@@ -174,7 +219,12 @@ fun ChatInput(
     fun sendMessageWithoutAnswer() {
         focusManager.clearFocus(force = true)
         keyboardController?.hide()
-        if (loading && state.isEmpty()) onCancelClick() else onLongSendClick()
+        if (loading && state.isEmpty()) {
+            onCancelClick()
+        } else {
+            onLongSendClick()
+            if (state.isEmpty()) startAutoReplyTimer()
+        }
     }
 
     val asr = LocalASRState.current
@@ -287,6 +337,7 @@ fun ChatInput(
                                     }
                                 )
                             }
+                            // ⚡ 模型/推理菜单
                             Box {
                                 IconButton(onClick = { showModelMenu = true }, modifier = Modifier.size(36.dp)) {
                                     Icon(HugeIcons.Zap, contentDescription = null, modifier = Modifier.size(20.dp))
@@ -295,8 +346,17 @@ fun ChatInput(
                                     expanded = showModelMenu,
                                     onDismissRequest = { showModelMenu = false }
                                 ) {
+                                    val providerName = remember(chatModel, settings.providers) {
+                                        chatModel?.let { model ->
+                                            settings.providers.find { p -> p.models.any { it.id == model.id } }?.name
+                                        }
+                                    }
+                                    val modelLabel = buildString {
+                                        append(chatModel?.displayName ?: "选择模型")
+                                        if (providerName != null) append(" ($providerName)")
+                                    }
                                     DropdownMenuItem(
-                                        text = { Text(chatModel?.displayName ?: "选择模型") },
+                                        text = { Text(modelLabel) },
                                         onClick = {
                                             showModelMenu = false
                                             modelListState.open()
@@ -313,6 +373,26 @@ fun ChatInput(
                                     }
                                 }
                             }
+                            // 💬 AI 回复 / ⏹ 停止
+                            ActionIconButton(
+                                onClick = {
+                                    if (loading) {
+                                        cancelAutoReplyTimer()
+                                        onCancelClick()
+                                    } else {
+                                        cancelAutoReplyTimer()
+                                        onTriggerAIReply()
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    if (loading) HugeIcons.Cancel01 else HugeIcons.MessageAdd01,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = if (loading) MaterialTheme.colorScheme.error
+                                           else MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
                         }} else null,
                         immersiveTrailingIcons = if (settings.displaySetting.immersiveChatMode) {{
                             ActionIconButton(onClick = onMoreClick) {
@@ -321,8 +401,14 @@ fun ChatInput(
                             SendButton(
                                 loading = loading,
                                 empty = state.isEmpty(),
-                                onClick = { sendMessage() },
-                                onLongClick = { sendMessageWithoutAnswer() },
+                                onClick = {
+                                    // 沉浸模式：发送只入队，等自动回复或手动触发
+                                    sendMessageWithoutAnswer()
+                                },
+                                onLongClick = {
+                                    // 长按：立即发送并触发回复（传统行为）
+                                    sendMessage()
+                                },
                             )
                         }} else null,
                     )

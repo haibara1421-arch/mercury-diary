@@ -178,6 +178,7 @@ data class DisplaySetting(
     val chatCustomFontPath: String = "",
     val chatCustomFontName: String = "",
     val enableVolumeKeyScroll: Boolean = false,
+    val immersiveAutoReplyDelay: Int = 5, // 沉浸模式自动回复等待秒数，0=关闭自动回复
     val volumeKeyScrollRatio: Float = 1.0f,
     val conversationSortOrder: ConversationSortOrder = ConversationSortOrder.UPDATE_TIME,
 )

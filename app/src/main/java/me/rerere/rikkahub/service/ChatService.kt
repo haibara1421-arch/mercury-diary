@@ -520,6 +520,26 @@ class ChatService(
         }
     }
 
+    // ---- 触发 AI 主动回复（不发送用户消息） ----
+
+    fun triggerAIReply(conversationId: Uuid) {
+        val session = sessionManager.getOrCreate(conversationId)
+        synchronized(session) {
+            if (session.getJob() != null) return
+            val job = launchGenerationJob(conversationId = conversationId) {
+                try {
+                    session.replyMessageId.value = null
+                    ensureInitialized(session)
+                    runTurn(session)
+                    _generationDoneFlow.emit(conversationId)
+                } catch (e: Exception) {
+                    reportFailure(session, e, R.string.error_title_regenerate_message)
+                }
+            }
+            session.setJob(job)
+        }
+    }
+
     // ---- 处理工具调用审批 ----
 
     fun handleToolApproval(

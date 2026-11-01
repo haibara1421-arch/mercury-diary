@@ -383,6 +383,7 @@ private fun ChatPageContent(
                     onBeginEditQueuedMessage = vm::beginEditQueuedMessage,
                     onFinishEditQueuedMessage = vm::finishEditQueuedMessage,
                     onResumeMessageQueue = vm::resumeMessageQueue,
+                    onTriggerAIReply = vm::triggerAIReply,
                     loading = loadingJob != null,
                     settings = setting,
                     assistant = assistant,

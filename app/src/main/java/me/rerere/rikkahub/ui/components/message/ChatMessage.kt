@@ -349,24 +349,8 @@ private fun MessagePartsBlock(
     val isSpeaking by tts.isSpeaking.collectAsState()
     val partsState by rememberUpdatedState(parts)
 
-    // 沉浸模式下单击助手气泡 → TTS 朗读/停止
-    val onClickBubbleTTS: (() -> Unit)? = if (
-        settings.displaySetting.immersiveChatMode && role == MessageRole.ASSISTANT
-    ) {{
-        if (isSpeaking) {
-            tts.stop()
-        } else {
-            val text = parts.filterIsInstance<UIMessagePart.Text>().joinToString("\n") { it.text }
-            var textToSpeak = text
-            if (settings.displaySetting.ttsOnlyReadQuoted) {
-                textToSpeak = textToSpeak.extractQuotedContentAsText() ?: textToSpeak
-            }
-            if (settings.displaySetting.ttsOnlyReadOutsideBrackets) {
-                textToSpeak = textToSpeak.removeBracketedContent() ?: textToSpeak
-            }
-            tts.speak(textToSpeak)
-        }
-    }} else null
+    // 沉浸模式下单击助手气泡 → TTS 朗读当前气泡的 segment 文本
+    val canClickBubbleTTS = settings.displaySetting.immersiveChatMode && role == MessageRole.ASSISTANT
 
     val handleClickCitation: (String) -> Unit = remember {
         handler@{ citationId ->
@@ -515,7 +499,20 @@ private fun MessagePartsBlock(
                                             ChatMessageBubble(
                                                 role = role,
                                                 color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = settings.displaySetting.bubbleOpacity),
-                                                onClick = onClickBubbleTTS,
+                                                onClick = if (canClickBubbleTTS) {{
+                                                    if (isSpeaking) {
+                                                        tts.stop()
+                                                    } else {
+                                                        var textToSpeak = segment
+                                                        if (settings.displaySetting.ttsOnlyReadQuoted) {
+                                                            textToSpeak = textToSpeak.extractQuotedContentAsText() ?: textToSpeak
+                                                        }
+                                                        if (settings.displaySetting.ttsOnlyReadOutsideBrackets) {
+                                                            textToSpeak = textToSpeak.removeBracketedContent() ?: textToSpeak
+                                                        }
+                                                        tts.speak(textToSpeak)
+                                                    }
+                                                }} else null,
                                                 onLongClick = onLongPressBubble,
                                                 modifier = Modifier.animateContentSize(),
                                             ) {
