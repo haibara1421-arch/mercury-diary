@@ -82,6 +82,7 @@ import me.rerere.ui.toast.ToastType
 import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.collectLatest
+import me.rerere.rikkahub.ui.components.icons.MercuryIcons
 import me.rerere.ai.core.ReasoningLevel
 import me.rerere.ai.provider.Model
 import me.rerere.ai.provider.ModelAbility
@@ -178,7 +179,6 @@ fun ChatInput(
 
     // 自动回复：发过消息 + 没焦点 + 输入框空 → 等N秒触发（delay=0时关闭）
     LaunchedEffect(inputFocused, pendingReply, autoReplyDelay) {
-        if (!settings.displaySetting.immersiveChatMode) return@LaunchedEffect
         if (autoReplyDelay <= 0) return@LaunchedEffect
         if (!pendingReply) return@LaunchedEffect
         if (inputFocused || loading) return@LaunchedEffect
@@ -304,177 +304,43 @@ fun ChatInput(
                         completionProviders = completionProviders,
                         onSendMessage = { sendMessage() },
                         onFocusChanged = { inputFocused = it },
-                        immersiveLeadingIcon = if (settings.displaySetting.immersiveChatMode) {{
-                            var showModelMenu by remember { mutableStateOf(false) }
-                            var showReasoningPicker by remember { mutableStateOf(false) }
-                            if (showReasoningPicker) {
-                                ReasoningPicker(
-                                    reasoningLevel = assistant.reasoningLevel,
-                                    onDismissRequest = { showReasoningPicker = false },
-                                    onUpdateReasoningLevel = {
-                                        onUpdateAssistant(assistant.copy(reasoningLevel = it))
+                        leadingIcon = {{
+                            ActionIconButton(onClick = onMoreClick) {
+                                Icon(MercuryIcons.CirclePlus, contentDescription = null, modifier = Modifier.size(20.dp))
+                            }
+                        }},
+                        trailingIcons = {{
+                            // ✨ AI 回复 / ✕ 停止
+                            ActionIconButton(
+                                onClick = {
+                                    if (loading) {
+                                        onCancelClick()
+                                    } else {
+                                        onTriggerAIReply()
                                     }
+                                }
+                            ) {
+                                Icon(
+                                    if (loading) HugeIcons.Cancel01 else MercuryIcons.AiStar,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
                                 )
                             }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                // ⚡ 模型/推理菜单
-                                Box {
-                                    ActionIconButton(onClick = { showModelMenu = true }) {
-                                        Icon(HugeIcons.Zap, contentDescription = null, modifier = Modifier.size(20.dp))
-                                    }
-                                    DropdownMenu(
-                                        expanded = showModelMenu,
-                                        onDismissRequest = { showModelMenu = false }
-                                    ) {
-                                        val providerName = remember(chatModel, settings.providers) {
-                                            chatModel?.let { model ->
-                                                settings.providers.find { p -> p.models.any { it.id == model.id } }?.name
-                                            }
-                                        }
-                                        val modelLabel = buildString {
-                                            append(chatModel?.displayName ?: "选择模型")
-                                            if (providerName != null) append(" ($providerName)")
-                                        }
-                                        DropdownMenuItem(
-                                            text = { Text(modelLabel) },
-                                            onClick = {
-                                                showModelMenu = false
-                                                modelListState.open()
-                                            },
-                                        )
-                                        if (chatModel?.abilities?.contains(ModelAbility.REASONING) == true) {
-                                            DropdownMenuItem(
-                                                text = { Text("推理: ${assistant.reasoningLevel.label()}") },
-                                                onClick = {
-                                                    showModelMenu = false
-                                                    showReasoningPicker = true
-                                                },
-                                            )
-                                        }
-                                    }
-                                }
-                                // ✨ AI 回复 / ✕ 停止
-                                ActionIconButton(
-                                    onClick = {
-                                        if (loading) {
-                                            onCancelClick()
-                                        } else {
-                                            onTriggerAIReply()
-                                        }
-                                    }
-                                ) {
-                                    Icon(
-                                        if (loading) HugeIcons.Cancel01 else HugeIcons.AiMagic,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(20.dp),
-                                    )
-                                }
-                            }
-                        }} else null,
-                        immersiveTrailingIcons = if (settings.displaySetting.immersiveChatMode) {{
-                            ActionIconButton(onClick = onMoreClick) {
-                                Icon(HugeIcons.Add01, contentDescription = null)
+                            if (loading) {
+                                KeepScreenOn()
                             }
                             SendButton(
                                 loading = loading,
                                 empty = state.isEmpty(),
                                 onClick = {
-                                    // 沉浸模式：发送只入队，等自动回复或手动触发
                                     sendMessageWithoutAnswer()
                                 },
                                 onLongClick = {
-                                    // 长按：立即发送并触发回复（传统行为）
                                     sendMessage()
                                 },
                             )
-                        }} else null,
+                        }},
                     )
-
-                    if (!settings.displaySetting.immersiveChatMode) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .weight(1f)
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            // Model Picker
-                            ModelSelectorButton(
-                                state = modelListState,
-                                onlyIcon = true,
-                                modifier = Modifier,
-                            )
-
-                            // Reasoning
-                            if (chatModel?.abilities?.contains(ModelAbility.REASONING) == true) {
-                                ReasoningButton(
-                                    reasoningLevel = assistant.reasoningLevel,
-                                    onUpdateReasoningLevel = {
-                                        onUpdateAssistant(assistant.copy(reasoningLevel = it))
-                                    },
-                                    onlyIcon = true,
-                                )
-                            }
-                        }
-
-                        ActionIconButton(
-                            onClick = onMoreClick
-                        ) {
-                            Icon(
-                                imageVector = HugeIcons.Add01,
-                                contentDescription = stringResource(R.string.more_options)
-                            )
-                        }
-
-                        if (!voiceState.isActive && (asrState.isAvailable || asrState.isRecording)) {
-                            AsrButton(
-                                state = asrState,
-                                onClick = {
-                                    when (asrState.status) {
-                                        ASRStatus.Listening -> asr.stop()
-                                        ASRStatus.Idle, ASRStatus.Error -> {
-                                            if (!asrPermission.allRequiredPermissionsGranted) {
-                                                asrPermission.requestPermissions()
-                                            } else {
-                                                asrBaseText = state.textContent.text.toString()
-                                                asr.start { transcript ->
-                                                    val spacer =
-                                                        if (asrBaseText.isBlank() || transcript.isBlank()) "" else " "
-                                                    state.setMessageText(asrBaseText + spacer + transcript)
-                                                }
-                                            }
-                                        }
-
-                                        ASRStatus.Connecting, ASRStatus.Stopping -> {}
-                                    }
-                                }
-                            )
-                        }
-
-                        if (loading) {
-                            KeepScreenOn()
-                        }
-
-                        AnimatedVisibility(
-                            visible = !asrState.isRecording,
-                            enter = fadeIn() + scaleIn(),
-                            exit = fadeOut() + scaleOut(),
-                        ) {
-                            SendButton(
-                                loading = loading,
-                                empty = state.isEmpty(),
-                                onClick = { sendMessage() },
-                                onLongClick = { sendMessageWithoutAnswer() },
-                            )
-                        }
-                    } // Row
-                    } // if (!immersiveChatMode)
                 }
             }
 
@@ -525,7 +391,7 @@ private fun SendButton(
             content = {},
         )
         Icon(
-            imageVector = if (showStop) HugeIcons.Cancel01 else HugeIcons.ArrowUp02,
+            imageVector = if (showStop) HugeIcons.Cancel01 else MercuryIcons.PaperPlane,
             contentDescription = stringResource(if (showStop) R.string.stop else R.string.send),
             tint = contentColor,
             modifier = Modifier.size(18.dp)
@@ -561,8 +427,8 @@ private fun TextInputRow(
     completionProviders: List<ChatCompletionProvider>,
     onSendMessage: () -> Unit,
     onFocusChanged: (Boolean) -> Unit = {},
-    immersiveLeadingIcon: (@Composable () -> Unit)? = null,
-    immersiveTrailingIcons: (@Composable RowScope.() -> Unit)? = null,
+    leadingIcon: (@Composable () -> Unit)? = null,
+    trailingIcons: (@Composable RowScope.() -> Unit)? = null,
 ) {
     val settings = LocalSettings.current
     val filesManager: FilesManager = koinInject()
@@ -701,9 +567,9 @@ private fun TextInputRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            // 沉浸模式：左侧按钮在 TextField 外面
-            if (immersiveLeadingIcon != null) {
-                immersiveLeadingIcon()
+            // 左侧按钮在 TextField 外面
+            if (leadingIcon != null) {
+                leadingIcon()
             }
 
             TextField(
@@ -735,7 +601,7 @@ private fun TextInputRow(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
                 ),
-                trailingIcon = if (immersiveTrailingIcons == null) {{
+                trailingIcon = if (trailingIcons == null) {{
                     if (isFocused) {
                         IconButton(
                             onClick = {
@@ -746,17 +612,15 @@ private fun TextInputRow(
                     }
                 }} else null,
                 leadingIcon = when {
-                    immersiveLeadingIcon != null -> null  // 已移到外面
+                    leadingIcon != null -> null  // 已移到外面
                     quickMessages.isNotEmpty() -> {{ QuickMessageButton(quickMessages = quickMessages, state = state) }}
                     else -> null
                 },
             )
 
-            // 沉浸模式：右侧按钮在 TextField 外面
-            if (immersiveTrailingIcons != null) {
-                immersiveTrailingIcons()
-            } else if (isFocused) {
-                // 非沉浸模式聚焦时不额外显示（fullscreen 已在 trailingIcon 里）
+            // 右侧按钮在 TextField 外面
+            if (trailingIcons != null) {
+                trailingIcons()
             }
         }
         if (isFullScreen) {

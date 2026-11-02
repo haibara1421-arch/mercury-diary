@@ -94,6 +94,7 @@ import me.rerere.rikkahub.data.model.Conversation
 import me.rerere.rikkahub.data.repository.WorkspaceRepository
 import me.rerere.rikkahub.service.ChatError
 import me.rerere.rikkahub.ui.components.ai.ChatAttachmentPickerActions
+import me.rerere.rikkahub.ui.components.icons.MercuryIcons
 import me.rerere.rikkahub.ui.components.ai.ChatInput
 import me.rerere.rikkahub.ui.components.ai.FilesPicker
 import me.rerere.rikkahub.ui.components.ai.SearchMode
@@ -315,6 +316,7 @@ private fun ChatPageContent(
 
     var previewMode by rememberSaveable { mutableStateOf(false) }
     var showBeautySheet by rememberSaveable { mutableStateOf(false) }
+    var showToolboxSheet by remember { mutableStateOf(false) }
     val hazeState = rememberHazeState()
     var showFilesSheet by remember { mutableStateOf(false) }
     val attachmentPickerActions = rememberChatAttachmentPickerActions(
@@ -370,6 +372,9 @@ private fun ChatPageContent(
                     },
                     onShowBeautySettings = {
                         showBeautySheet = true
+                    },
+                    onShowToolbox = {
+                        showToolboxSheet = true
                     }
                 )
             },
@@ -446,6 +451,17 @@ private fun ChatPageContent(
                         vm.updateSettings { it.copy(displaySetting = ds) }
                     },
                     onDismiss = { showBeautySheet = false }
+                )
+            }
+            // Toolbox BottomSheet
+            if (showToolboxSheet) {
+                ToolboxSheet(
+                    setting = setting,
+                    conversation = conversation,
+                    assistant = assistant,
+                    chatModel = currentChatModel,
+                    vm = vm,
+                    onDismiss = { showToolboxSheet = false }
                 )
             }
             ChatList(
@@ -615,7 +631,8 @@ private fun TopBar(
     onNewChat: () -> Unit,
     onUpdateTitle: (String) -> Unit,
     onToggleImmersive: () -> Unit = {},
-    onShowBeautySettings: () -> Unit = {}
+    onShowBeautySettings: () -> Unit = {},
+    onShowToolbox: () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
@@ -637,20 +654,13 @@ private fun TopBar(
             }
         },
         title = {
-            if (settings.displaySetting.immersiveChatMode) {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) },
-                        maxLines = 1,
-                        style = MaterialTheme.typography.titleMedium,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            } else {
-                val editTitleWarning = stringResource(R.string.chat_page_edit_title_warning)
+            val ds = settings.displaySetting
+            val editTitleWarning = stringResource(R.string.chat_page_edit_title_warning)
+            val contentAlignment = if (ds.centerAssistantName) Alignment.Center else Alignment.CenterStart
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = contentAlignment,
+            ) {
                 Surface(
                     onClick = {
                         if (conversation.messageNodes.isNotEmpty()) {
@@ -663,13 +673,15 @@ private fun TopBar(
                 ) {
                     Column {
                         val provider = chatModel?.findProvider(providers = settings.providers, checkOverwrite = false)
-                        Text(
-                            text = conversation.title.ifBlank { stringResource(R.string.chat_page_new_chat) },
-                            maxLines = 1,
-                            style = MaterialTheme.typography.bodyMedium,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        if (chatModel != null && provider != null) {
+                        if (!ds.hideConversationTitle) {
+                            Text(
+                                text = conversation.title.ifBlank { stringResource(R.string.chat_page_new_chat) },
+                                maxLines = 1,
+                                style = MaterialTheme.typography.bodyMedium,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        if (!ds.hideModelInfo && chatModel != null && provider != null) {
                             Text(
                                 text = "${assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) }} / ${chatModel.displayName} (${provider.name})",
                                 overflow = TextOverflow.Ellipsis,
@@ -680,11 +692,25 @@ private fun TopBar(
                                 )
                             )
                         }
+                        // 标题和模型信息都隐藏时，至少显示角色名
+                        if (ds.hideConversationTitle && ds.hideModelInfo) {
+                            Text(
+                                text = assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) },
+                                maxLines = 1,
+                                style = MaterialTheme.typography.titleMedium,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                     }
                 }
             }
         },
         actions = {
+            // 工具箱按钮
+            IconButton(onClick = onShowToolbox) {
+                Icon(MercuryIcons.Toolbox, "Toolbox")
+            }
+            // ⋮ 菜单
             var showMenu by remember { mutableStateOf(false) }
             Box {
                 IconButton(onClick = { showMenu = true }) {
@@ -694,17 +720,6 @@ private fun TopBar(
                     expanded = showMenu,
                     onDismissRequest = { showMenu = false }
                 ) {
-                    val isImmersive = settings.displaySetting.immersiveChatMode
-                    DropdownMenuItem(
-                        text = { Text(if (isImmersive) "关闭沉浸模式" else "沉浸聊天模式") },
-                        onClick = {
-                            showMenu = false
-                            onToggleImmersive()
-                        },
-                        leadingIcon = {
-                            Icon(if (isImmersive) HugeIcons.ViewOff else HugeIcons.View, null)
-                        }
-                    )
                     DropdownMenuItem(
                         text = { Text(if (previewMode) "关闭查找" else "查找聊天记录") },
                         onClick = {
@@ -804,6 +819,45 @@ private fun BeautySettingsSheet(
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
             )
 
+            // --- 顶栏 ---
+            Text(
+                text = "顶栏",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            )
+
+            BeautySwitch(
+                title = "隐藏对话标题",
+                subtitle = "隐藏顶栏的对话标题",
+                checked = displaySetting.hideConversationTitle,
+                onCheckedChange = { onUpdateDisplaySetting(displaySetting.copy(hideConversationTitle = it)) },
+            )
+
+            BeautySwitch(
+                title = "隐藏模型信息",
+                subtitle = "隐藏顶栏的角色名和模型信息",
+                checked = displaySetting.hideModelInfo,
+                onCheckedChange = { onUpdateDisplaySetting(displaySetting.copy(hideModelInfo = it)) },
+            )
+
+            BeautySwitch(
+                title = "角色名居中",
+                subtitle = "顶栏角色名居中显示",
+                checked = displaySetting.centerAssistantName,
+                onCheckedChange = { onUpdateDisplaySetting(displaySetting.copy(centerAssistantName = it)) },
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+            // --- 消息 ---
+            Text(
+                text = "消息",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            )
+
             // 显示用户头像
             BeautySwitch(
                 title = "显示用户头像",
@@ -882,53 +936,52 @@ private fun BeautySettingsSheet(
                 onCheckedChange = { onUpdateDisplaySetting(displaySetting.copy(autoCloseThinking = it)) },
             )
 
-            // 沉浸模式自动回复
-            if (displaySetting.immersiveChatMode) {
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            // 自动回复
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
-                Text(
-                    text = "沉浸模式",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
-                )
+            Text(
+                text = "自动回复",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            )
 
-                // 自动回复开关
-                BeautySwitch(
-                    title = "自动回复",
-                    subtitle = "发送消息后自动触发AI回复",
-                    checked = displaySetting.immersiveAutoReplyDelay > 0,
-                    onCheckedChange = {
-                        onUpdateDisplaySetting(displaySetting.copy(
-                            immersiveAutoReplyDelay = if (it) 5 else 0
-                        ))
+            // 自动回复开关
+            BeautySwitch(
+                title = "自动回复",
+                subtitle = "发送消息后自动触发AI回复",
+                checked = displaySetting.immersiveAutoReplyDelay > 0,
+                onCheckedChange = {
+                    onUpdateDisplaySetting(displaySetting.copy(
+                        immersiveAutoReplyDelay = if (it) 5 else 0
+                    ))
+                },
+            )
+
+            // 等待秒数输入
+            if (displaySetting.immersiveAutoReplyDelay > 0) {
+                var delayText by remember(displaySetting.immersiveAutoReplyDelay) {
+                    mutableStateOf(displaySetting.immersiveAutoReplyDelay.toString())
+                }
+                ListItem(
+                    headlineContent = { Text("等待秒数") },
+                    supportingContent = { Text("发送消息后等待多少秒再触发回复") },
+                    trailingContent = {
+                        OutlinedTextField(
+                            value = delayText,
+                            onValueChange = { value ->
+                                delayText = value
+                                val num = value.toIntOrNull()
+                                if (num != null && num in 1..60) {
+                                    onUpdateDisplaySetting(displaySetting.copy(immersiveAutoReplyDelay = num))
+                                }
+                            },
+                            modifier = Modifier.width(64.dp),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        )
                     },
                 )
-
-                // 等待秒数输入
-                if (displaySetting.immersiveAutoReplyDelay > 0) {
-                    var delayText by remember(displaySetting.immersiveAutoReplyDelay) {
-                        mutableStateOf(displaySetting.immersiveAutoReplyDelay.toString())
-                    }
-                    ListItem(
-                        headlineContent = { Text("等待秒数") },
-                        supportingContent = { Text("发送消息后等待多少秒再触发回复") },
-                        trailingContent = {
-                            OutlinedTextField(
-                                value = delayText,
-                                onValueChange = { value ->
-                                    delayText = value
-                                    val num = value.toIntOrNull()
-                                    if (num != null && num in 1..60) {
-                                        onUpdateDisplaySetting(displaySetting.copy(immersiveAutoReplyDelay = num))
-                                    }
-                                },
-                                modifier = Modifier.width(64.dp),
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            )
-                        },
-                    )
-                }
             }
         }
     }
@@ -949,4 +1002,62 @@ private fun BeautySwitch(
         },
         modifier = Modifier.clickable { onCheckedChange(!checked) },
     )
+}
+
+/**
+ * 工具箱 BottomSheet
+ * 暂时复用 FilesPicker 完整面板，后续拆分为只包含非聊天功能
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ToolboxSheet(
+    setting: Settings,
+    conversation: Conversation,
+    assistant: Assistant,
+    chatModel: Model?,
+    vm: ChatVM,
+    onDismiss: () -> Unit,
+) {
+    var showCompressDialog by remember { mutableStateOf(false) }
+
+    fun dismissAll() {
+        showCompressDialog = false
+        onDismiss()
+    }
+
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(
+        onDismissRequest = { dismissAll() },
+        sheetState = sheetState,
+    ) {
+        FilesPicker(
+            conversation = conversation,
+            state = vm.inputState,
+            assistant = assistant,
+            chatModel = chatModel,
+            mcpManager = vm.mcpManager,
+            onCompressContext = vm::handleCompressContext,
+            onUpdateAssistant = vm::updateAssistant,
+            onUpdateWorkspaceCwd = vm::updateWorkspaceCwd,
+            onUpdateSearchMode = { mode ->
+                vm.updateSearch(
+                    enableWebSearch = mode == SearchMode.LOCAL,
+                    builtInSearch = mode == SearchMode.BUILT_IN,
+                )
+            },
+            onUpdateSearchService = { index ->
+                vm.updateSettings { it.copy(searchServiceSelected = index) }
+            },
+            showCompressDialog = showCompressDialog,
+            onShowCompressDialogChange = { showCompressDialog = it },
+            onDismiss = { dismissAll() },
+            onTakePic = {},
+            onPickImage = {},
+            onPickVideo = {},
+            onPickAudio = {},
+            onPickFile = {},
+            onSketch = {},
+            onStartVoiceMode = null,
+        )
+    }
 }

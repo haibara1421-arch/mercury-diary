@@ -179,6 +179,9 @@ data class DisplaySetting(
     val chatCustomFontName: String = "",
     val enableVolumeKeyScroll: Boolean = false,
     val immersiveAutoReplyDelay: Int = 5, // 沉浸模式自动回复等待秒数，0=关闭自动回复
+    val hideConversationTitle: Boolean = false, // 隐藏对话标题
+    val hideModelInfo: Boolean = false, // 隐藏模型信息（角色名/模型名/中转站）
+    val centerAssistantName: Boolean = false, // 角色名居中显示
     val volumeKeyScrollRatio: Float = 1.0f,
     val conversationSortOrder: ConversationSortOrder = ConversationSortOrder.UPDATE_TIME,
 )
