@@ -178,11 +178,10 @@ fun ChatInput(
     var pendingReply by remember { mutableStateOf(false) }
 
     // 自动回复：发过消息 + 没焦点 + 输入框空 → 等N秒触发（delay=0时关闭）
-    LaunchedEffect(inputFocused, pendingReply, autoReplyDelay) {
+    LaunchedEffect(inputFocused, pendingReply, autoReplyDelay, loading) {
         if (autoReplyDelay <= 0) return@LaunchedEffect
         if (!pendingReply) return@LaunchedEffect
         if (inputFocused || loading) return@LaunchedEffect
-        if (state.textContent.text.isNotEmpty()) return@LaunchedEffect
         delay(autoReplyDelay * 1000L)
         pendingReply = false
         onTriggerAIReply()
