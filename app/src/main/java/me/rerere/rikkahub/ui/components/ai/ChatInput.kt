@@ -304,12 +304,12 @@ fun ChatInput(
                         completionProviders = completionProviders,
                         onSendMessage = { sendMessage() },
                         onFocusChanged = { inputFocused = it },
-                        leadingIcon = {{
+                        leadingIcon = {
                             ActionIconButton(onClick = onMoreClick) {
                                 Icon(MercuryIcons.CirclePlus, contentDescription = null, modifier = Modifier.size(20.dp))
                             }
-                        }},
-                        trailingIcons = {{
+                        },
+                        trailingIcons = {
                             // ✨ AI 回复 / ✕ 停止
                             ActionIconButton(
                                 onClick = {
@@ -339,7 +339,7 @@ fun ChatInput(
                                     sendMessage()
                                 },
                             )
-                        }},
+                        },
                     )
                 }
             }
