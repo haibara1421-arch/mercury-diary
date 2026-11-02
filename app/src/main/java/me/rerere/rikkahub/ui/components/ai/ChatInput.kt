@@ -360,14 +360,11 @@ private fun SendButton(
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val showStop = loading && empty
     val containerColor = when {
-        showStop -> MaterialTheme.colorScheme.errorContainer
         empty -> MaterialTheme.colorScheme.surfaceContainerHigh
         else -> MaterialTheme.colorScheme.primary
     }
     val contentColor = when {
-        showStop -> MaterialTheme.colorScheme.onErrorContainer
         empty -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
         else -> MaterialTheme.colorScheme.onPrimary
     }
@@ -378,7 +375,7 @@ private fun SendButton(
             .testTag("chat_send_button")
             .clip(CircleShape)
             .combinedClickable(
-                enabled = showStop || !empty,
+                enabled = !empty,
                 onClick = onClick,
                 onLongClick = onLongClick,
             )
@@ -390,8 +387,8 @@ private fun SendButton(
             content = {},
         )
         Icon(
-            imageVector = if (showStop) HugeIcons.Cancel01 else MercuryIcons.PaperPlane,
-            contentDescription = stringResource(if (showStop) R.string.stop else R.string.send),
+            imageVector = MercuryIcons.PaperPlane,
+            contentDescription = stringResource(R.string.send),
             tint = contentColor,
             modifier = Modifier.size(18.dp)
         )
