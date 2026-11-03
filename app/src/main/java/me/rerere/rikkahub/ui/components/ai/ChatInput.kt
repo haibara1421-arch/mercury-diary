@@ -8,6 +8,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.content.MediaType
 import androidx.compose.foundation.content.ReceiveContentListener
 import androidx.compose.foundation.content.consume
@@ -154,7 +155,7 @@ fun ChatInput(
     onStopVoiceMode: () -> Unit = {},
 ) {
     val toaster = LocalToaster.current
-    val containerColor = MaterialTheme.colorScheme.surface
+    val containerColor = MaterialTheme.colorScheme.surfaceContainerLow
 
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
@@ -303,26 +304,46 @@ fun ChatInput(
                         onSendMessage = { sendMessage() },
                         onFocusChanged = { inputFocused = it },
                         leadingIcon = {
-                            ActionIconButton(onClick = onMoreClick) {
-                                Icon(HugeIcons.Add01, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clickable(
+                                        indication = androidx.compose.material3.ripple(),
+                                        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                        onClick = onMoreClick,
+                                    ),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    MercuryIcons.CirclePlus,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(34.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
                             }
                         },
                         trailingIcons = {
                             // ✨ AI 回复 / ✕ 停止
-                            ActionIconButton(
+                            Surface(
                                 onClick = {
                                     if (loading) {
                                         onCancelClick()
                                     } else {
                                         onTriggerAIReply()
                                     }
-                                }
+                                },
+                                modifier = Modifier.size(38.dp),
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
                             ) {
-                                Icon(
-                                    if (loading) HugeIcons.Cancel01 else MercuryIcons.AiStar,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp),
-                                )
+                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        if (loading) HugeIcons.Cancel01 else MercuryIcons.AiStar,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
                             }
                             if (loading) {
                                 KeepScreenOn()
@@ -360,17 +381,17 @@ private fun SendButton(
     modifier: Modifier = Modifier,
 ) {
     val containerColor = when {
-        empty -> MaterialTheme.colorScheme.surfaceContainerHigh
+        empty -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
         else -> MaterialTheme.colorScheme.primary
     }
     val contentColor = when {
-        empty -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+        empty -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
         else -> MaterialTheme.colorScheme.onPrimary
     }
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
-            .size(36.dp)
+            .size(40.dp)
             .testTag("chat_send_button")
             .clip(CircleShape)
             .combinedClickable(
