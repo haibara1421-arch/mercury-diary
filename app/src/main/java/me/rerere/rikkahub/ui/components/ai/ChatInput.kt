@@ -37,7 +37,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
@@ -272,9 +271,9 @@ fun ChatInput(
                         hazeState = hazeState,
                         displaySetting = settings.displaySetting,
                         containerColor = containerColor,
-                        shape = RectangleShape,
+                        shape = RoundedCornerShape(0.dp),
                     ),
-                shape = RectangleShape,
+                shape = RoundedCornerShape(0.dp),
                 tonalElevation = 0.dp,
                 color = if (settings.displaySetting.enableBlurEffect) Color.Transparent else containerColor,
             ) {
