@@ -263,20 +263,17 @@ fun ChatInput(
                 onFinishEdit = onFinishEditQueuedMessage,
                 onResume = onResumeMessageQueue,
             )
-            androidx.compose.material3.HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                thickness = 0.5.dp,
-            )
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
                     .chatInputHaze(
                         hazeState = hazeState,
                         displaySetting = settings.displaySetting,
                         containerColor = containerColor,
-                        shape = RoundedCornerShape(0.dp),
+                        shape = RoundedCornerShape(percent = 50),
                     ),
-                shape = RoundedCornerShape(0.dp),
+                shape = RoundedCornerShape(percent = 50),
                 tonalElevation = 0.dp,
                 color = if (settings.displaySetting.enableBlurEffect) Color.Transparent else containerColor,
             ) {
@@ -307,7 +304,7 @@ fun ChatInput(
                         leadingIcon = {
                             Box(
                                 modifier = Modifier
-                                    .size(48.dp)
+                                    .size(40.dp)
                                     .clickable(
                                         indication = androidx.compose.material3.ripple(),
                                         interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
@@ -318,7 +315,7 @@ fun ChatInput(
                                 Icon(
                                     MercuryIcons.CirclePlus,
                                     contentDescription = null,
-                                    modifier = Modifier.size(34.dp),
+                                    modifier = Modifier.size(26.dp),
                                     tint = ChatColors.plusIconColor,
                                 )
                             }

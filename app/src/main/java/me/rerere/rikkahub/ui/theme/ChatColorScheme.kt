@@ -46,7 +46,7 @@ val WarmHomeLightChatColors = ChatColorScheme(
     // 气泡
     userBubble = Color(0xFFF7E8E6),
     onUserBubble = Color(0xFF514B49),
-    assistantBubble = Color(0xFFFFFFFF),
+    assistantBubble = Color(0xFFF5F2F0),
     onAssistantBubble = Color(0xFF514B49),
 
     // 底部输入区
