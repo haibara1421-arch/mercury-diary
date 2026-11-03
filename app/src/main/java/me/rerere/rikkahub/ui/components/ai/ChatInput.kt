@@ -119,6 +119,7 @@ import me.rerere.rikkahub.ui.components.ui.permission.PermissionRecordAudio
 import me.rerere.rikkahub.ui.components.ui.permission.rememberPermissionState
 import me.rerere.rikkahub.ui.context.LocalASRState
 import me.rerere.rikkahub.ui.context.LocalSettings
+import me.rerere.rikkahub.ui.theme.ChatColors
 import me.rerere.rikkahub.ui.context.LocalToaster
 import me.rerere.rikkahub.ui.hooks.ChatInputState
 import me.rerere.rikkahub.utils.SoundEffectPlayer
@@ -155,7 +156,7 @@ fun ChatInput(
     onStopVoiceMode: () -> Unit = {},
 ) {
     val toaster = LocalToaster.current
-    val containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+    val containerColor = ChatColors.inputBarBackground
 
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
@@ -318,7 +319,7 @@ fun ChatInput(
                                     MercuryIcons.CirclePlus,
                                     contentDescription = null,
                                     modifier = Modifier.size(34.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    tint = ChatColors.plusIconColor,
                                 )
                             }
                         },
@@ -334,14 +335,14 @@ fun ChatInput(
                                 },
                                 modifier = Modifier.size(38.dp),
                                 shape = CircleShape,
-                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                                color = ChatColors.aiStarBackground,
                             ) {
                                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                     Icon(
                                         if (loading) HugeIcons.Cancel01 else MercuryIcons.AiStar,
                                         contentDescription = null,
                                         modifier = Modifier.size(20.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        tint = ChatColors.aiStarIconColor,
                                     )
                                 }
                             }
@@ -381,12 +382,12 @@ private fun SendButton(
     modifier: Modifier = Modifier,
 ) {
     val containerColor = when {
-        empty -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
-        else -> MaterialTheme.colorScheme.primary
+        empty -> ChatColors.sendButtonBackgroundEmpty
+        else -> ChatColors.sendButtonBackground
     }
     val contentColor = when {
-        empty -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-        else -> MaterialTheme.colorScheme.onPrimary
+        empty -> ChatColors.sendButtonIconEmpty
+        else -> ChatColors.sendButtonIcon
     }
     Box(
         contentAlignment = Alignment.Center,
@@ -597,7 +598,7 @@ private fun TextInputRow(
                     .onFocusChanged {
                         isFocused = it.isFocused
                     },
-                shape = RoundedCornerShape(8.dp),
+                shape = RoundedCornerShape(24.dp),
                 placeholder = {
                     Text(stringResource(R.string.chat_input_placeholder))
                 },
@@ -614,8 +615,12 @@ private fun TextInputRow(
                 colors = TextFieldDefaults.colors().copy(
                     unfocusedIndicatorColor = Color.Transparent,
                     focusedIndicatorColor = Color.Transparent,
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    focusedContainerColor = ChatColors.inputFieldBackground,
+                    unfocusedContainerColor = ChatColors.inputFieldBackground,
+                    focusedTextColor = ChatColors.inputFieldText,
+                    unfocusedTextColor = ChatColors.inputFieldText,
+                    focusedPlaceholderColor = ChatColors.inputFieldPlaceholder,
+                    unfocusedPlaceholderColor = ChatColors.inputFieldPlaceholder,
                 ),
                 trailingIcon = if (trailingIcons == null) {{
                     if (isFocused) {

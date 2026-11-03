@@ -99,9 +99,19 @@ fun RikkahubTheme(
         }
     }
 
+    // 聊天专属配色：暖屋主题用自定义色，其他主题 fallback
+    val chatColorScheme = remember(settings.themeId, darkTheme) {
+        if (settings.themeId == "warm_home") {
+            if (darkTheme) WarmHomeDarkChatColors else WarmHomeLightChatColors
+        } else {
+            ChatColorScheme() // 全部 null，fallback 到主题色
+        }
+    }
+
     CompositionLocalProvider(
         LocalDarkMode provides darkTheme,
         LocalExtendColors provides extendColors,
+        LocalChatColorScheme provides chatColorScheme,
         LocalOverscrollFactory provides null,
     ) {
         MaterialExpressiveTheme(
