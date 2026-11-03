@@ -93,6 +93,7 @@ import me.rerere.rikkahub.ui.components.ui.FaviconRow
 import me.rerere.rikkahub.ui.context.LocalNavController
 import me.rerere.rikkahub.ui.modifier.shimmer
 import me.rerere.rikkahub.ui.context.LocalSettings
+import me.rerere.rikkahub.ui.theme.ChatColors
 import me.rerere.rikkahub.utils.removeBracketedContent
 import me.rerere.rikkahub.utils.extractQuotedContentAsText
 import androidx.compose.runtime.collectAsState
@@ -402,7 +403,7 @@ private fun MessagePartsBlock(
                         collapsedVisibleCount = collapsedVisibleCount,
                         collapsedAdaptiveWidth = isReasoningOnlyBlock,
                         cardColors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = settings.displaySetting.bubbleOpacity),
+                            containerColor = ChatColors.assistantBubble.copy(alpha = settings.displaySetting.bubbleOpacity),
                         ),
                     ) { step ->
                         when (step) {
@@ -472,7 +473,7 @@ private fun MessagePartsBlock(
                                     textSegments.forEach { segment ->
                                         ChatMessageBubble(
                                             role = role,
-                                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = settings.displaySetting.bubbleOpacity),
+                                            color = ChatColors.userBubble.copy(alpha = settings.displaySetting.bubbleOpacity),
                                             onClick = { onUserMessageClick?.invoke() },
                                             onLongClick = onLongPressBubble,
                                             // 用户气泡不占满整行，和助手的回复错开
@@ -498,7 +499,7 @@ private fun MessagePartsBlock(
                                         if (settings.displaySetting.showAssistantBubble) {
                                             ChatMessageBubble(
                                                 role = role,
-                                                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = settings.displaySetting.bubbleOpacity),
+                                                color = ChatColors.assistantBubble.copy(alpha = settings.displaySetting.bubbleOpacity),
                                                 onClick = if (canClickBubbleTTS) {{
                                                     if (isSpeaking) {
                                                         tts.stop()
