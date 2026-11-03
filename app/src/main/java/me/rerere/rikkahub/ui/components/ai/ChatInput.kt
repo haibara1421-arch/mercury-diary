@@ -154,7 +154,7 @@ fun ChatInput(
     onStopVoiceMode: () -> Unit = {},
 ) {
     val toaster = LocalToaster.current
-    val containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+    val containerColor = MaterialTheme.colorScheme.surface
 
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
@@ -360,7 +360,7 @@ private fun SendButton(
     modifier: Modifier = Modifier,
 ) {
     val containerColor = when {
-        empty -> MaterialTheme.colorScheme.surfaceContainer
+        empty -> MaterialTheme.colorScheme.surfaceContainerHigh
         else -> MaterialTheme.colorScheme.primary
     }
     val contentColor = when {
@@ -405,7 +405,7 @@ private fun ActionIconButton(
         modifier = modifier.size(36.dp),
         shape = CircleShape,
         tonalElevation = 0.dp,
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
     ) {
         Box(
             modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
