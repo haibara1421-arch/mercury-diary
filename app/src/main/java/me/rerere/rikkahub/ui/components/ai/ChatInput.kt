@@ -360,7 +360,7 @@ private fun SendButton(
     modifier: Modifier = Modifier,
 ) {
     val containerColor = when {
-        empty -> Color.Transparent
+        empty -> MaterialTheme.colorScheme.surfaceContainer
         else -> MaterialTheme.colorScheme.primary
     }
     val contentColor = when {
@@ -405,7 +405,7 @@ private fun ActionIconButton(
         modifier = modifier.size(36.dp),
         shape = CircleShape,
         tonalElevation = 0.dp,
-        color = Color.Transparent,
+        color = MaterialTheme.colorScheme.surfaceContainer,
     ) {
         Box(
             modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
