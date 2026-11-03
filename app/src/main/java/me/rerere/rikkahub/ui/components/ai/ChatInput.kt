@@ -252,10 +252,7 @@ fun ChatInput(
         Column(
             modifier = modifier
                 .imePadding()
-                .navigationBarsPadding()
-                .padding(horizontal = 8.dp)
-                .padding(bottom = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .navigationBarsPadding(),
         ) {
             MessageQueuePanel(
                 state = messageQueue,
@@ -263,6 +260,10 @@ fun ChatInput(
                 onBeginEdit = onBeginEditQueuedMessage,
                 onFinishEdit = onFinishEditQueuedMessage,
                 onResume = onResumeMessageQueue,
+            )
+            androidx.compose.material3.HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                thickness = 0.5.dp,
             )
             Surface(
                 modifier = Modifier
@@ -359,7 +360,7 @@ private fun SendButton(
     modifier: Modifier = Modifier,
 ) {
     val containerColor = when {
-        empty -> MaterialTheme.colorScheme.surfaceContainerHigh
+        empty -> MaterialTheme.colorScheme.surfaceContainerLow
         else -> MaterialTheme.colorScheme.primary
     }
     val contentColor = when {
@@ -404,7 +405,7 @@ private fun ActionIconButton(
         modifier = modifier.size(36.dp),
         shape = CircleShape,
         tonalElevation = 0.dp,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
         Box(
             modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
