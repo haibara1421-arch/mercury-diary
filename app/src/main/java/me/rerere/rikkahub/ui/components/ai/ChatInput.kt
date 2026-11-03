@@ -37,6 +37,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
@@ -267,20 +268,18 @@ fun ChatInput(
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(containerShape)
                     .chatInputHaze(
                         hazeState = hazeState,
                         displaySetting = settings.displaySetting,
                         containerColor = containerColor,
-                        shape = containerShape,
+                        shape = RectangleShape,
                     ),
-                shape = containerShape,
+                shape = RectangleShape,
                 tonalElevation = 0.dp,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                 color = if (settings.displaySetting.enableBlurEffect) Color.Transparent else containerColor,
             ) {
                 Column(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     if (voiceState.phase != VoicePhase.Off) {
@@ -577,7 +576,7 @@ private fun TextInputRow(
                     .onFocusChanged {
                         isFocused = it.isFocused
                     },
-                shape = MaterialTheme.shapes.largeIncreased,
+                shape = RoundedCornerShape(8.dp),
                 placeholder = {
                     Text(stringResource(R.string.chat_input_placeholder))
                 },
@@ -594,8 +593,8 @@ private fun TextInputRow(
                 colors = TextFieldDefaults.colors().copy(
                     unfocusedIndicatorColor = Color.Transparent,
                     focusedIndicatorColor = Color.Transparent,
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                 ),
                 trailingIcon = if (trailingIcons == null) {{
                     if (isFocused) {
