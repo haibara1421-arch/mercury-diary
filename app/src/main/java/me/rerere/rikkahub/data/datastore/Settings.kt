@@ -32,6 +32,7 @@ data class Settings(
     val init: Boolean = false,
     val dynamicColor: Boolean = true,
     val themeId: String = PresetThemes[0].id,
+    val userBubbleVariant: String = "B",  // "A" = 雾粉白, "B" = 轻雾灰粉
     val customThemes: List<CustomTheme> = emptyList(),
     val developerMode: Boolean = false,
     val displaySetting: DisplaySetting = DisplaySetting(),

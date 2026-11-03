@@ -100,9 +100,14 @@ fun RikkahubTheme(
     }
 
     // 聊天专属配色：暖屋主题用自定义色，其他主题 fallback
-    val chatColorScheme = remember(settings.themeId, darkTheme) {
+    val chatColorScheme = remember(settings.themeId, settings.userBubbleVariant, darkTheme) {
         if (settings.themeId == "warm_home") {
-            if (darkTheme) WarmHomeDarkChatColors else WarmHomeLightChatColors
+            if (darkTheme) {
+                WarmHomeDarkChatColors
+            } else {
+                val bubbleColor = if (settings.userBubbleVariant == "A") WarmHomeUserBubbleA else WarmHomeUserBubbleB
+                warmHomeLightChatColors(userBubble = bubbleColor)
+            }
         } else {
             ChatColorScheme() // 全部 null，fallback 到主题色
         }

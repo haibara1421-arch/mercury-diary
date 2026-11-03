@@ -17,6 +17,7 @@ import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -450,6 +451,11 @@ private fun ChatPageContent(
                     onUpdateDisplaySetting = { ds ->
                         vm.updateSettings { it.copy(displaySetting = ds) }
                     },
+                    userBubbleVariant = setting.userBubbleVariant,
+                    onUpdateUserBubbleVariant = { v ->
+                        vm.updateSettings { it.copy(userBubbleVariant = v) }
+                    },
+                    showBubbleVariant = setting.themeId == "warm_home",
                     onDismiss = { showBeautySheet = false }
                 )
             }
@@ -797,6 +803,9 @@ private fun TopBar(
 private fun BeautySettingsSheet(
     displaySetting: DisplaySetting,
     onUpdateDisplaySetting: (DisplaySetting) -> Unit,
+    userBubbleVariant: String = "B",
+    onUpdateUserBubbleVariant: (String) -> Unit = {},
+    showBubbleVariant: Boolean = false,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -887,6 +896,28 @@ private fun BeautySettingsSheet(
                     )
                 },
             )
+
+            // 用户气泡配色切换（仅暖屋主题显示）
+            if (showBubbleVariant) {
+                ListItem(
+                    headlineContent = { Text("用户气泡配色") },
+                    supportingContent = { Text(if (userBubbleVariant == "A") "A · 雾粉白" else "B · 轻雾灰粉") },
+                    trailingContent = {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(
+                                selected = userBubbleVariant == "A",
+                                onClick = { onUpdateUserBubbleVariant("A") },
+                                label = { Text("A") },
+                            )
+                            FilterChip(
+                                selected = userBubbleVariant == "B",
+                                onClick = { onUpdateUserBubbleVariant("B") },
+                                label = { Text("B") },
+                            )
+                        }
+                    },
+                )
+            }
 
             // 显示模型图标
             BeautySwitch(

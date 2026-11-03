@@ -39,26 +39,32 @@ data class ChatColorScheme(
 
 val LocalChatColorScheme = compositionLocalOf { ChatColorScheme() }
 
+/** 用户气泡候选色 A「雾粉白」 */
+val WarmHomeUserBubbleA = Color(0xFFF8F0EF)
+/** 用户气泡候选色 B「轻雾灰粉」（默认） */
+val WarmHomeUserBubbleB = Color(0xFFF1E5E3)
+
 /**
  * 暖屋 · 晨光玫瑰 浅色聊天配色
+ * userBubble 由外部根据 A/B 设置传入
  */
-val WarmHomeLightChatColors = ChatColorScheme(
+fun warmHomeLightChatColors(userBubble: Color = WarmHomeUserBubbleB) = ChatColorScheme(
     // 气泡
-    userBubble = Color(0xFFF7E8E6),
+    userBubble = userBubble,
     onUserBubble = Color(0xFF514B49),
     assistantBubble = Color(0xFFF5F2F0),
     onAssistantBubble = Color(0xFF514B49),
 
     // 底部输入区
-    inputBarBackground = Color(0xFFF6F3F2),
+    inputBarBackground = Color(0xFFF5F0EF),
     inputFieldBackground = Color(0xFFFFFFFF),
     inputFieldText = Color(0xFF514B49),
     inputFieldPlaceholder = Color(0xFFB6ABA8),
 
     // 按钮
     plusIconColor = Color(0xFF8C7F7C),
-    aiStarIconColor = Color(0xFFB98F8F),
-    aiStarBackground = Color(0xFFF3E7E6),
+    aiStarIconColor = Color(0xFFA87C7B),
+    aiStarBackground = Color(0xFFEEDCDA),
     sendButtonBackground = Color(0xFFD9A3A3),
     sendButtonIcon = Color(0xFFFFFFFF),
     sendButtonBackgroundEmpty = Color(0xFFEFE9E8),
@@ -72,9 +78,7 @@ val WarmHomeLightChatColors = ChatColorScheme(
 /**
  * 暖屋 · 晨光玫瑰 深色聊天配色（placeholder）
  */
-val WarmHomeDarkChatColors = ChatColorScheme(
-    // 暂时全部 null，fallback 到主题色，后续再设计
-)
+val WarmHomeDarkChatColors = ChatColorScheme()
 
 /**
  * 便捷方法：读取聊天配色，有自定义值就用，没有就 fallback 到主题色。

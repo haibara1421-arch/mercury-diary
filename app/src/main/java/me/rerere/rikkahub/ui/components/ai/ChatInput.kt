@@ -278,7 +278,7 @@ fun ChatInput(
                 color = if (settings.displaySetting.enableBlurEffect) Color.Transparent else containerColor,
             ) {
                 Column(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     if (voiceState.phase != VoicePhase.Off) {
@@ -590,6 +590,7 @@ private fun TextInputRow(
                 state = state.textContent,
                 modifier = Modifier
                     .weight(1f)
+                    .heightIn(min = 44.dp)
                     .testTag("chat_input")
                     .contentReceiver(receiveContentListener)
                     .onFocusChanged {
