@@ -41,8 +41,8 @@ val LocalChatColorScheme = compositionLocalOf { ChatColorScheme() }
 
 /** 用户气泡候选色 A「雾粉白」 */
 val WarmHomeUserBubbleA = Color(0xFFF8F0EF)
-/** 用户气泡候选色 B「轻雾灰粉」（默认） */
-val WarmHomeUserBubbleB = Color(0xFFF1E5E3)
+/** 用户气泡候选色 B「晨雾玫瑰」（默认） */
+val WarmHomeUserBubbleB = Color(0xFFF5EAE8)
 
 /**
  * 暖屋 · 晨光玫瑰 浅色聊天配色
@@ -56,19 +56,19 @@ fun warmHomeLightChatColors(userBubble: Color = WarmHomeUserBubbleB) = ChatColor
     onAssistantBubble = Color(0xFF514B49),
 
     // 底部输入区
-    inputBarBackground = Color(0xFFF5F0EF),
+    inputBarBackground = Color(0xFFF0EFEE),
     inputFieldBackground = Color(0xFFFFFFFF),
     inputFieldText = Color(0xFF514B49),
     inputFieldPlaceholder = Color(0xFFB6ABA8),
 
     // 按钮
     plusIconColor = Color(0xFF8C7F7C),
-    aiStarIconColor = Color(0xFFA87C7B),
-    aiStarBackground = Color(0xFFEEDCDA),
+    aiStarIconColor = Color(0xFF9F8582),
+    aiStarBackground = Color(0xFFEAE3E1),
     sendButtonBackground = Color(0xFFD9A3A3),
     sendButtonIcon = Color(0xFFFFFFFF),
-    sendButtonBackgroundEmpty = Color(0xFFEFE9E8),
-    sendButtonIconEmpty = Color(0xFFC7BDBB),
+    sendButtonBackgroundEmpty = Color(0xFFF8F6F5),
+    sendButtonIconEmpty = Color(0xFFB8AEAB),
 
     // 聊天区
     chatBackground = Color(0xFFFBFAF9),

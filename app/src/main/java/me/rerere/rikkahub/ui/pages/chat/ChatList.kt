@@ -98,6 +98,7 @@ import me.rerere.ai.ui.UIMessage
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.data.datastore.getAssistantById
+import me.rerere.rikkahub.data.model.ChatMode
 import me.rerere.rikkahub.data.model.Conversation
 import me.rerere.rikkahub.data.model.MessageNode
 import me.rerere.rikkahub.data.model.withConversation
@@ -299,6 +300,10 @@ private fun ChatListNormal(
     }
     val lastMessageIndex = conversation.messageNodes.lastIndex
 
+    // 聊天模式下消息组间距更大
+    val isChatMode = assistant?.chatMode == ChatMode.CHAT
+    val messageSpacing = if (isChatMode) 20.dp else 12.dp
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -342,7 +347,7 @@ private fun ChatListNormal(
                     bottom = 32.dp + innerPadding.calculateBottomPadding(),
                 ),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(messageSpacing),
                 modifier = Modifier
                     .fillMaxSize()
                     .topFadingEdge(innerPadding.calculateTopPadding() + 24.dp)

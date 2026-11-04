@@ -14,6 +14,15 @@ import java.util.concurrent.TimeUnit
 import kotlin.uuid.Uuid
 
 @Serializable
+enum class ChatMode {
+    @SerialName("chat")
+    CHAT, // 聊天模式：气泡宽度受限、间距大、拆分开
+
+    @SerialName("work")
+    WORK, // 工作模式：气泡全宽、间距紧凑、拆分关
+}
+
+@Serializable
 data class Assistant(
     val id: Uuid = Uuid.random(),
     val chatModelId: Uuid? = null, // 如果为null, 使用全局默认模型
@@ -52,6 +61,8 @@ data class Assistant(
     val enableTimeReminder: Boolean = false, // 时间间隔提醒注入
     val timeReminderIntervalMinutes: Int = 60, // 时间提醒间隔（分钟，至少 1 分钟）
     val allowConversationSystemPrompt: Boolean = false, // 允许对话单独重写 system prompt
+    val chatMode: ChatMode = ChatMode.CHAT, // 消息模式：聊天模式 / 工作模式
+    val chatBubbleMaxWidthFraction: Float = 0.82f, // 聊天模式下气泡最大宽度比例 (0.7~0.9)
 )
 
 @Serializable

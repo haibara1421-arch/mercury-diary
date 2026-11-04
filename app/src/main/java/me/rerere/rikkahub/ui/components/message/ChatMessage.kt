@@ -80,6 +80,7 @@ import me.rerere.hugeicons.stroke.Video01
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.Screen
 import me.rerere.rikkahub.data.model.Assistant
+import me.rerere.rikkahub.data.model.ChatMode
 import me.rerere.rikkahub.data.model.AssistantAffectScope
 import me.rerere.rikkahub.data.model.MessageNode
 import me.rerere.rikkahub.data.model.replaceRegexes
@@ -350,6 +351,10 @@ private fun MessagePartsBlock(
     val isSpeaking by tts.isSpeaking.collectAsState()
     val partsState by rememberUpdatedState(parts)
 
+    // 聊天模式判定
+    val isChatMode = assistant?.chatMode == ChatMode.CHAT
+    val bubbleMaxWidthFraction = assistant?.chatBubbleMaxWidthFraction ?: 0.82f
+
     // 沉浸模式下单击助手气泡 → TTS 朗读当前气泡的 segment 文本
     val canClickBubbleTTS = settings.displaySetting.immersiveChatMode && role == MessageRole.ASSISTANT
 
@@ -458,7 +463,7 @@ private fun MessagePartsBlock(
                             visual = true,
                         )
                         // 气泡拆分：按连续空行拆成多段，每段独立气泡
-                        val textSegments = if ((settings.displaySetting.enableBubbleSplit || settings.displaySetting.immersiveChatMode) && !streamingText) {
+                        val textSegments = if ((settings.displaySetting.enableBubbleSplit || settings.displaySetting.immersiveChatMode || isChatMode) && !streamingText) {
                             processedText.split(Regex("\n\n+")).filter { it.isNotBlank() }
                         } else {
                             listOf(processedText)
@@ -466,7 +471,7 @@ private fun MessagePartsBlock(
                         val textContent = @Composable {
                             if (role == MessageRole.USER) {
                                 Column(
-                                    verticalArrangement = Arrangement.spacedBy(if (settings.displaySetting.immersiveChatMode) 8.dp else 4.dp),
+                                    verticalArrangement = Arrangement.spacedBy(if (settings.displaySetting.immersiveChatMode || isChatMode) 8.dp else 4.dp),
                                     horizontalAlignment = Alignment.End,
                                     modifier = Modifier.fillMaxWidth(),
                                 ) {
@@ -478,7 +483,10 @@ private fun MessagePartsBlock(
                                             onLongClick = onLongPressBubble,
                                             // 用户气泡不占满整行，和助手的回复错开
                                             modifier = Modifier
-                                                .padding(start = 24.dp)
+                                                .then(
+                                                    if (isChatMode) Modifier.fillMaxWidth(bubbleMaxWidthFraction)
+                                                    else Modifier.padding(start = 24.dp)
+                                                )
                                                 .animateContentSize(),
                                         ) {
                                             MarkdownBlock(
@@ -490,9 +498,12 @@ private fun MessagePartsBlock(
                                 }
                             } else {
                                 Column(
-                                    verticalArrangement = Arrangement.spacedBy(if (settings.displaySetting.immersiveChatMode) 8.dp else 4.dp),
+                                    verticalArrangement = Arrangement.spacedBy(if (settings.displaySetting.immersiveChatMode || isChatMode) 8.dp else 4.dp),
                                     horizontalAlignment = Alignment.Start,
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier.then(
+                                        if (isChatMode) Modifier.fillMaxWidth(bubbleMaxWidthFraction + 0.02f)
+                                        else Modifier.fillMaxWidth()
+                                    ),
                                 ) {
                                     textSegments.forEachIndexed { segIndex, segment ->
                                         val isLastSegment = segIndex == textSegments.lastIndex
