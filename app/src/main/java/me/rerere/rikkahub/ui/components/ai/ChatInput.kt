@@ -266,7 +266,7 @@ fun ChatInput(
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                    .padding(horizontal = 12.dp, vertical = 4.dp)
                     .chatInputHaze(
                         hazeState = hazeState,
                         displaySetting = settings.displaySetting,
@@ -278,8 +278,8 @@ fun ChatInput(
                 color = if (settings.displaySetting.enableBlurEffect) Color.Transparent else containerColor,
             ) {
                 Column(
-                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 0.dp),
+                    verticalArrangement = Arrangement.spacedBy(0.dp)
                 ) {
                     if (voiceState.phase != VoicePhase.Off) {
                         VoiceModeRow(
@@ -304,7 +304,7 @@ fun ChatInput(
                         leadingIcon = {
                             Box(
                                 modifier = Modifier
-                                    .size(36.dp)
+                                    .size(32.dp)
                                     .clickable(
                                         indication = androidx.compose.material3.ripple(),
                                         interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
@@ -330,7 +330,7 @@ fun ChatInput(
                                         onTriggerAIReply()
                                     }
                                 },
-                                modifier = Modifier.size(34.dp),
+                                modifier = Modifier.size(32.dp),
                                 shape = CircleShape,
                                 color = ChatColors.aiStarBackground,
                             ) {
@@ -389,7 +389,7 @@ private fun SendButton(
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
-            .size(34.dp)
+            .size(32.dp)
             .testTag("chat_send_button")
             .clip(CircleShape)
             .combinedClickable(
@@ -590,7 +590,7 @@ private fun TextInputRow(
                 state = state.textContent,
                 modifier = Modifier
                     .weight(1f)
-                    .heightIn(min = 38.dp)
+                    .heightIn(min = 36.dp)
                     .testTag("chat_input")
                     .contentReceiver(receiveContentListener)
                     .onFocusChanged {
