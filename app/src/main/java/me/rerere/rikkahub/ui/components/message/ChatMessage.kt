@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -610,8 +611,12 @@ private fun MessagePartsBlock(
     // Render parts in original order (group thinking/tool as chain-of-thought)
     val groupedParts = remember(parts) { parts.groupMessageParts() }
     groupedParts.fastForEachIndexed { blockIndex, block ->
-        // 聊天模式：每个block左侧带头像（AI）或右侧带头像（用户）
-        val blockContent = @Composable {
+        ChatModeAvatarRow(
+            role = role,
+            isFirstBlock = blockIndex == 0,
+            chatModeAvatar = chatModeAvatar,
+            chatModeUserAvatar = chatModeUserAvatar,
+        ) {
         when (block) {
             is MessagePartBlock.ThinkingBlock -> {
                 if (block.steps.isNotEmpty()) {
@@ -852,37 +857,49 @@ private fun MessagePartsBlock(
                     }
                 }
             }
-        } // end blockContent
-        // 聊天模式包裹：AI左侧头像 / 用户右侧头像
-        if (chatModeAvatar != null && role == MessageRole.ASSISTANT) {
-            Row(
-                verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                chatModeAvatar(blockIndex == 0)
-                Box(modifier = Modifier.weight(1f, fill = false)) {
-                    blockContent()
-                }
-            }
-        } else if (chatModeUserAvatar != null && role == MessageRole.USER) {
-            Row(
-                verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Spacer(modifier = Modifier.weight(1f))
-                blockContent()
-                chatModeUserAvatar(blockIndex == 0)
-            }
-        } else {
-            blockContent()
-        }
+        } // end ChatModeAvatarRow
     }
 
     // Annotations (always rendered at the end)
     if (annotations.isNotEmpty()) {
         ChatMessageCitations(annotations = annotations)
+    }
+}
+
+/**
+ * 聊天模式头像包裹：AI消息左侧头像+内容，用户消息内容+右侧头像
+ */
+@Composable
+private fun ChatModeAvatarRow(
+    role: MessageRole,
+    isFirstBlock: Boolean,
+    chatModeAvatar: (@Composable (isFirst: Boolean) -> Unit)?,
+    chatModeUserAvatar: (@Composable (isFirst: Boolean) -> Unit)?,
+    content: @Composable () -> Unit,
+) {
+    if (chatModeAvatar != null && role == MessageRole.ASSISTANT) {
+        Row(
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            chatModeAvatar(isFirstBlock)
+            Box(modifier = Modifier.weight(1f, fill = false)) {
+                content()
+            }
+        }
+    } else if (chatModeUserAvatar != null && role == MessageRole.USER) {
+        Row(
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Spacer(modifier = Modifier.weight(1f))
+            content()
+            chatModeUserAvatar(isFirstBlock)
+        }
+    } else {
+        content()
     }
 }
 
