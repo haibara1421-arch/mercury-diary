@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -55,6 +56,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
@@ -82,15 +84,18 @@ import me.rerere.rikkahub.Screen
 import me.rerere.rikkahub.data.model.Assistant
 import me.rerere.rikkahub.data.model.ChatMode
 import me.rerere.rikkahub.data.model.AssistantAffectScope
+import me.rerere.rikkahub.data.datastore.DisplaySetting
 import me.rerere.rikkahub.data.model.MessageNode
 import me.rerere.rikkahub.data.model.replaceRegexes
 import me.rerere.rikkahub.ui.components.richtext.MarkdownBlock
 import me.rerere.rikkahub.ui.components.richtext.SelectableContent
 import me.rerere.rikkahub.ui.components.richtext.ZoomableAsyncImage
 import me.rerere.rikkahub.ui.components.richtext.buildMarkdownPreviewHtml
+import me.rerere.rikkahub.ui.components.ui.AutoAIIcon
 import me.rerere.rikkahub.ui.components.ui.ChainOfThought
 import me.rerere.rikkahub.ui.components.ui.Favicon
 import me.rerere.rikkahub.ui.components.ui.FaviconRow
+import me.rerere.rikkahub.ui.components.ui.UIAvatar
 import me.rerere.rikkahub.ui.context.LocalNavController
 import me.rerere.rikkahub.ui.modifier.shimmer
 import me.rerere.rikkahub.ui.context.LocalSettings
@@ -156,6 +161,35 @@ fun ChatMessage(
     val navController = LocalNavController.current
     val context = LocalContext.current
     val colorScheme = MaterialTheme.colorScheme
+    val isChatMode = assistant?.chatMode == ChatMode.CHAT
+    val isUser = message.role == MessageRole.USER
+
+    // 聊天模式：头像在气泡旁边（Row包裹）；工作模式：头像在气泡上方（原有布局）
+    if (isChatMode) {
+        ChatMessageChatModeLayout(
+            node = node,
+            message = message,
+            model = model,
+            assistant = assistant,
+            loading = loading,
+            lastMessage = lastMessage,
+            settings = settings,
+            textStyle = textStyle,
+            modifier = modifier,
+            onRegenerate = onRegenerate,
+            onEdit = onEdit,
+            onShare = onShare,
+            onFork = onFork,
+            onDelete = onDelete,
+            onUpdate = onUpdate,
+            isFavorite = isFavorite,
+            onToggleFavorite = onToggleFavorite,
+            onTranslate = onTranslate,
+            onClearTranslation = onClearTranslation,
+            onToolApproval = onToolApproval,
+            onToolAnswer = onToolAnswer,
+        )
+    } else {
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = if (message.role == MessageRole.USER) Alignment.End else Alignment.Start,
@@ -279,6 +313,187 @@ fun ChatMessage(
         }
 
     }
+    if (showActionsSheet) {
+        ChatMessageActionsSheet(
+            message = message,
+            onEdit = onEdit,
+            onDelete = onDelete,
+            onShare = onShare,
+            onFork = onFork,
+            model = model,
+            onSelectAndCopy = {
+                showSelectCopySheet = true
+            },
+            isFavorite = isFavorite,
+            onToggleFavorite = onToggleFavorite,
+            onWebViewPreview = {
+                val textContent = message.parts
+                    .filterIsInstance<UIMessagePart.Text>()
+                    .joinToString("\n\n") { it.text }
+                    .trim()
+                if (textContent.isNotBlank()) {
+                    val htmlContent = buildMarkdownPreviewHtml(
+                        context = context,
+                        markdown = textContent,
+                        colorScheme = colorScheme
+                    )
+                    val contentId = WebViewContentCache.store(context.cacheDir, htmlContent)
+                    navController.navigate(Screen.WebView(contentId = contentId))
+                }
+            },
+            onDismissRequest = {
+                showActionsSheet = false
+            },
+            onRegenerate = onRegenerate,
+            onTranslate = onTranslate,
+            onClearTranslation = onClearTranslation,
+        )
+    }
+
+    if (showSelectCopySheet) {
+        ChatMessageCopySheet(
+            message = message,
+            onDismissRequest = {
+                showSelectCopySheet = false
+            }
+        )
+    }
+    } // end else (work mode)
+}
+
+/**
+ * 聊天模式布局：头像在气泡旁边，像真实聊天软件。
+ * AI消息：左侧小头像 + 右侧气泡区
+ * 用户消息：左侧气泡区 + 右侧小头像
+ */
+@Composable
+private fun ChatMessageChatModeLayout(
+    node: MessageNode,
+    message: UIMessage,
+    model: Model?,
+    assistant: Assistant?,
+    loading: Boolean,
+    lastMessage: Boolean,
+    settings: DisplaySetting,
+    textStyle: TextStyle,
+    modifier: Modifier = Modifier,
+    onRegenerate: () -> Unit,
+    onEdit: () -> Unit,
+    onShare: () -> Unit,
+    onFork: () -> Unit,
+    onDelete: () -> Unit,
+    onUpdate: (MessageNode) -> Unit,
+    isFavorite: Boolean,
+    onToggleFavorite: (() -> Unit)?,
+    onTranslate: ((UIMessage, Locale) -> Unit)?,
+    onClearTranslation: (UIMessage) -> Unit,
+    onToolApproval: ((toolCallId: String, approved: Boolean, reason: String) -> Unit)?,
+    onToolAnswer: ((toolCallId: String, answer: String) -> Unit)?,
+) {
+    val isUser = message.role == MessageRole.USER
+    val navController = LocalNavController.current
+    val context = LocalContext.current
+    val colorScheme = MaterialTheme.colorScheme
+    var showActionsSheet by remember { mutableStateOf(false) }
+    var showSelectCopySheet by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
+        verticalAlignment = Alignment.Top,
+    ) {
+        // AI头像（左侧）
+        if (!isUser && !message.parts.isEmptyUIMessage()) {
+            val useAssistantAvatar = assistant?.useAssistantAvatar == true
+            if (useAssistantAvatar) {
+                UIAvatar(
+                    name = assistant.name,
+                    modifier = Modifier.size(32.dp),
+                    value = assistant.avatar,
+                    loading = loading,
+                )
+            } else if (model != null && settings.showModelIcon) {
+                AutoAIIcon(
+                    name = model.modelId,
+                    modifier = Modifier.size(32.dp),
+                    loading = loading,
+                )
+            } else {
+                Spacer(modifier = Modifier.size(32.dp))
+            }
+            Spacer(modifier = Modifier.size(8.dp))
+        }
+
+        // 气泡区域
+        Column(
+            modifier = Modifier.weight(1f, fill = false),
+            horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            CompositionLocalProvider(
+                LocalTextStyle provides textStyle,
+                LocalWorkspaceId provides assistant?.workspaceId?.toString(),
+            ) {
+                MessagePartsBlock(
+                    assistant = assistant,
+                    role = message.role,
+                    parts = message.parts,
+                    annotations = message.annotations,
+                    loading = loading,
+                    model = model,
+                    onToolApproval = onToolApproval,
+                    onToolAnswer = onToolAnswer,
+                    onUserMessageClick = if (isUser) onEdit else null,
+                    onLongPressBubble = { showActionsSheet = true },
+                )
+
+                message.translation?.let { translation ->
+                    CollapsibleTranslationText(
+                        content = translation,
+                        onClickCitation = {}
+                    )
+                }
+            }
+
+            // 时间戳和分支（聊天模式下始终显示在气泡下方）
+            val hasBranches = node.messages.size > 1
+            val showTime = settings.showDateTimeInMessage
+            if (hasBranches || showTime) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    if (hasBranches) {
+                        ChatMessageBranchSelector(
+                            node = node,
+                            onUpdate = onUpdate,
+                        )
+                    }
+                    if (showTime) {
+                        Text(
+                            text = message.createdAt.toJavaLocalDateTime().toMessageTimeString(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            maxLines = 1,
+                            modifier = Modifier.padding(horizontal = 4.dp),
+                        )
+                    }
+                }
+            }
+        }
+
+        // 用户头像（右侧）
+        if (isUser && !message.parts.isEmptyUIMessage() && settings.showUserAvatar) {
+            Spacer(modifier = Modifier.size(8.dp))
+            UIAvatar(
+                name = settings.userNickname,
+                modifier = Modifier.size(32.dp),
+                value = settings.userAvatar,
+                loading = false,
+            )
+        }
+    }
+
     if (showActionsSheet) {
         ChatMessageActionsSheet(
             message = message,
