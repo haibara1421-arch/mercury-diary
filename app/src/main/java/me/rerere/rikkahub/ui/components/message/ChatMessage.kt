@@ -492,7 +492,6 @@ private fun ChatMessageChatModeLayout(
                             modifier = Modifier.padding(horizontal = 4.dp),
                         )
                     }
-                }
             }
         }
     }
