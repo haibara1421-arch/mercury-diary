@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -398,15 +397,19 @@ private fun ChatMessageChatModeLayout(
     var showActionsSheet by remember { mutableStateOf(false) }
     var showSelectCopySheet by remember { mutableStateOf(false) }
 
-    // AI头像composable，传给MessagePartsBlock让每个气泡自己带
-    val useAssistantAvatar = assistant?.useAssistantAvatar == true
-    val aiAvatar: @Composable (isFirst: Boolean) -> Unit = { isFirst ->
-        if (isFirst) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
+        verticalAlignment = Alignment.Top,
+    ) {
+        // AI头像（左侧）—— 聊天模式始终显示
+        if (!isUser) {
+            val useAssistantAvatar = assistant?.useAssistantAvatar == true
             if (useAssistantAvatar) {
                 UIAvatar(
-                    name = assistant?.name ?: "",
+                    name = assistant.name,
                     modifier = Modifier.size(32.dp),
-                    value = assistant?.avatar ?: me.rerere.rikkahub.data.model.Avatar.Dummy,
+                    value = assistant.avatar,
                     loading = loading,
                 )
             } else if (model != null) {
@@ -422,53 +425,39 @@ private fun ChatMessageChatModeLayout(
                     loading = loading,
                 )
             }
-        } else {
-            Spacer(modifier = Modifier.size(32.dp))
+            Spacer(modifier = Modifier.size(8.dp))
         }
-    }
 
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        CompositionLocalProvider(
-            LocalTextStyle provides textStyle,
-            LocalWorkspaceId provides assistant?.workspaceId?.toString(),
+        // 气泡区域
+        Column(
+            modifier = Modifier.weight(1f, fill = false),
+            horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            MessagePartsBlock(
-                assistant = assistant,
-                role = message.role,
-                parts = message.parts,
-                annotations = message.annotations,
-                loading = loading,
-                model = model,
-                onToolApproval = onToolApproval,
-                onToolAnswer = onToolAnswer,
-                onUserMessageClick = if (isUser) onEdit else null,
-                onLongPressBubble = { showActionsSheet = true },
-                chatModeAvatar = if (!isUser) aiAvatar else null,
-                chatModeUserAvatar = if (isUser && settings.showUserAvatar) {{ isFirst: Boolean ->
-                    if (isFirst) {
-                        UIAvatar(
-                            name = settings.userNickname,
-                            modifier = Modifier.size(32.dp),
-                            value = settings.userAvatar,
-                            loading = false,
-                        )
-                    } else {
-                        Spacer(modifier = Modifier.size(32.dp))
-                    }
-                }} else null,
-            )
-
-            message.translation?.let { translation ->
-                CollapsibleTranslationText(
-                    content = translation,
-                    onClickCitation = {}
+            CompositionLocalProvider(
+                LocalTextStyle provides textStyle,
+                LocalWorkspaceId provides assistant?.workspaceId?.toString(),
+            ) {
+                MessagePartsBlock(
+                    assistant = assistant,
+                    role = message.role,
+                    parts = message.parts,
+                    annotations = message.annotations,
+                    loading = loading,
+                    model = model,
+                    onToolApproval = onToolApproval,
+                    onToolAnswer = onToolAnswer,
+                    onUserMessageClick = if (isUser) onEdit else null,
+                    onLongPressBubble = { showActionsSheet = true },
                 )
+
+                message.translation?.let { translation ->
+                    CollapsibleTranslationText(
+                        content = translation,
+                        onClickCitation = {}
+                    )
+                }
             }
-        }
 
             // 时间戳和分支（聊天模式下始终显示在气泡下方）
             val hasBranches = node.messages.size > 1
@@ -493,7 +482,19 @@ private fun ChatMessageChatModeLayout(
                             modifier = Modifier.padding(horizontal = 4.dp),
                         )
                     }
+                }
             }
+        }
+
+        // 用户头像（右侧）
+        if (isUser && settings.showUserAvatar) {
+            Spacer(modifier = Modifier.size(8.dp))
+            UIAvatar(
+                name = settings.userNickname,
+                modifier = Modifier.size(32.dp),
+                value = settings.userAvatar,
+                loading = false,
+            )
         }
     }
 
@@ -560,8 +561,6 @@ private fun MessagePartsBlock(
     onToolAnswer: ((toolCallId: String, answer: String) -> Unit)? = null,
     onUserMessageClick: (() -> Unit)? = null,
     onLongPressBubble: (() -> Unit)? = null,
-    chatModeAvatar: (@Composable (isFirst: Boolean) -> Unit)? = null,
-    chatModeUserAvatar: (@Composable (isFirst: Boolean) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     // 消息输出HapticFeedback
@@ -610,13 +609,7 @@ private fun MessagePartsBlock(
 
     // Render parts in original order (group thinking/tool as chain-of-thought)
     val groupedParts = remember(parts) { parts.groupMessageParts() }
-    groupedParts.fastForEachIndexed { blockIndex, block ->
-        ChatModeAvatarRow(
-            role = role,
-            isFirstBlock = blockIndex == 0,
-            chatModeAvatar = chatModeAvatar,
-            chatModeUserAvatar = chatModeUserAvatar,
-        ) {
+    groupedParts.fastForEach { block ->
         when (block) {
             is MessagePartBlock.ThinkingBlock -> {
                 if (block.steps.isNotEmpty()) {
@@ -707,9 +700,10 @@ private fun MessagePartsBlock(
                                             color = ChatColors.userBubble.copy(alpha = settings.displaySetting.bubbleOpacity),
                                             onClick = { onUserMessageClick?.invoke() },
                                             onLongClick = onLongPressBubble,
+                                            // 用户气泡不占满整行，和助手的回复错开
                                             modifier = Modifier
                                                 .then(
-                                                    if (isChatMode) Modifier.widthIn(max = 280.dp)
+                                                    if (isChatMode) Modifier.fillMaxWidth(bubbleMaxWidthFraction)
                                                     else Modifier.padding(start = 24.dp)
                                                 )
                                                 .animateContentSize(),
@@ -732,7 +726,6 @@ private fun MessagePartsBlock(
                                 ) {
                                     textSegments.forEachIndexed { segIndex, segment ->
                                         val isLastSegment = segIndex == textSegments.lastIndex
-                                        // 聊天模式：每个气泡带头像
                                         if (settings.displaySetting.showAssistantBubble) {
                                             ChatMessageBubble(
                                                 role = role,
@@ -768,7 +761,6 @@ private fun MessagePartsBlock(
                                                 modifier = Modifier
                                                     .animateContentSize()
                                             )
-                                        }
                                         }
                                     }
                                 }
@@ -857,49 +849,12 @@ private fun MessagePartsBlock(
                     }
                 }
             }
-        } // end ChatModeAvatarRow
+        }
     }
 
     // Annotations (always rendered at the end)
     if (annotations.isNotEmpty()) {
         ChatMessageCitations(annotations = annotations)
-    }
-}
-
-/**
- * 聊天模式头像包裹：AI消息左侧头像+内容，用户消息内容+右侧头像
- */
-@Composable
-private fun ChatModeAvatarRow(
-    role: MessageRole,
-    isFirstBlock: Boolean,
-    chatModeAvatar: (@Composable (isFirst: Boolean) -> Unit)?,
-    chatModeUserAvatar: (@Composable (isFirst: Boolean) -> Unit)?,
-    content: @Composable () -> Unit,
-) {
-    if (chatModeAvatar != null && role == MessageRole.ASSISTANT) {
-        Row(
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            chatModeAvatar(isFirstBlock)
-            Box(modifier = Modifier.weight(1f, fill = false)) {
-                content()
-            }
-        }
-    } else if (chatModeUserAvatar != null && role == MessageRole.USER) {
-        Row(
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Spacer(modifier = Modifier.weight(1f))
-            content()
-            chatModeUserAvatar(isFirstBlock)
-        }
-    } else {
-        content()
     }
 }
 
