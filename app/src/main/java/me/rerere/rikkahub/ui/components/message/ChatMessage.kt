@@ -397,19 +397,15 @@ private fun ChatMessageChatModeLayout(
     var showActionsSheet by remember { mutableStateOf(false) }
     var showSelectCopySheet by remember { mutableStateOf(false) }
 
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
-        verticalAlignment = Alignment.Top,
-    ) {
-        // AI头像（左侧）
-        if (!isUser && !message.parts.isEmptyUIMessage()) {
-            val useAssistantAvatar = assistant?.useAssistantAvatar == true
+    // AI头像composable，传给MessagePartsBlock让每个气泡自己带
+    val useAssistantAvatar = assistant?.useAssistantAvatar == true
+    val aiAvatar: @Composable (isFirst: Boolean) -> Unit = { isFirst ->
+        if (isFirst) {
             if (useAssistantAvatar) {
                 UIAvatar(
-                    name = assistant.name,
+                    name = assistant?.name ?: "",
                     modifier = Modifier.size(32.dp),
-                    value = assistant.avatar,
+                    value = assistant?.avatar ?: me.rerere.rikkahub.data.model.Avatar.Dummy,
                     loading = loading,
                 )
             } else if (model != null) {
@@ -425,39 +421,53 @@ private fun ChatMessageChatModeLayout(
                     loading = loading,
                 )
             }
-            Spacer(modifier = Modifier.size(8.dp))
+        } else {
+            Spacer(modifier = Modifier.size(32.dp))
         }
+    }
 
-        // 气泡区域
-        Column(
-            modifier = Modifier.weight(1f, fill = false),
-            horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        CompositionLocalProvider(
+            LocalTextStyle provides textStyle,
+            LocalWorkspaceId provides assistant?.workspaceId?.toString(),
         ) {
-            CompositionLocalProvider(
-                LocalTextStyle provides textStyle,
-                LocalWorkspaceId provides assistant?.workspaceId?.toString(),
-            ) {
-                MessagePartsBlock(
-                    assistant = assistant,
-                    role = message.role,
-                    parts = message.parts,
-                    annotations = message.annotations,
-                    loading = loading,
-                    model = model,
-                    onToolApproval = onToolApproval,
-                    onToolAnswer = onToolAnswer,
-                    onUserMessageClick = if (isUser) onEdit else null,
-                    onLongPressBubble = { showActionsSheet = true },
-                )
+            MessagePartsBlock(
+                assistant = assistant,
+                role = message.role,
+                parts = message.parts,
+                annotations = message.annotations,
+                loading = loading,
+                model = model,
+                onToolApproval = onToolApproval,
+                onToolAnswer = onToolAnswer,
+                onUserMessageClick = if (isUser) onEdit else null,
+                onLongPressBubble = { showActionsSheet = true },
+                chatModeAvatar = if (!isUser) aiAvatar else null,
+                chatModeUserAvatar = if (isUser && settings.showUserAvatar) {{ isFirst: Boolean ->
+                    if (isFirst) {
+                        UIAvatar(
+                            name = settings.userNickname,
+                            modifier = Modifier.size(32.dp),
+                            value = settings.userAvatar,
+                            loading = false,
+                        )
+                    } else {
+                        Spacer(modifier = Modifier.size(32.dp))
+                    }
+                }} else null,
+            )
 
-                message.translation?.let { translation ->
-                    CollapsibleTranslationText(
-                        content = translation,
-                        onClickCitation = {}
-                    )
-                }
+            message.translation?.let { translation ->
+                CollapsibleTranslationText(
+                    content = translation,
+                    onClickCitation = {}
+                )
             }
+        }
 
             // 时间戳和分支（聊天模式下始终显示在气泡下方）
             val hasBranches = node.messages.size > 1
@@ -484,17 +494,6 @@ private fun ChatMessageChatModeLayout(
                     }
                 }
             }
-        }
-
-        // 用户头像（右侧）
-        if (isUser && !message.parts.isEmptyUIMessage() && settings.showUserAvatar) {
-            Spacer(modifier = Modifier.size(8.dp))
-            UIAvatar(
-                name = settings.userNickname,
-                modifier = Modifier.size(32.dp),
-                value = settings.userAvatar,
-                loading = false,
-            )
         }
     }
 
@@ -561,6 +560,8 @@ private fun MessagePartsBlock(
     onToolAnswer: ((toolCallId: String, answer: String) -> Unit)? = null,
     onUserMessageClick: (() -> Unit)? = null,
     onLongPressBubble: (() -> Unit)? = null,
+    chatModeAvatar: (@Composable (isFirst: Boolean) -> Unit)? = null,
+    chatModeUserAvatar: (@Composable (isFirst: Boolean) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     // 消息输出HapticFeedback
@@ -694,16 +695,16 @@ private fun MessagePartsBlock(
                                     horizontalAlignment = Alignment.End,
                                     modifier = Modifier.fillMaxWidth(),
                                 ) {
-                                    textSegments.forEach { segment ->
+                                    textSegments.forEachIndexed { segIndex, segment ->
+                                        val userBubble = @Composable {
                                         ChatMessageBubble(
                                             role = role,
                                             color = ChatColors.userBubble.copy(alpha = settings.displaySetting.bubbleOpacity),
                                             onClick = { onUserMessageClick?.invoke() },
                                             onLongClick = onLongPressBubble,
-                                            // 用户气泡不占满整行，和助手的回复错开
                                             modifier = Modifier
                                                 .then(
-                                                    if (isChatMode) Modifier.fillMaxWidth(bubbleMaxWidthFraction)
+                                                    if (isChatMode) Modifier
                                                     else Modifier.padding(start = 24.dp)
                                                 )
                                                 .animateContentSize(),
@@ -712,6 +713,20 @@ private fun MessagePartsBlock(
                                                 content = segment,
                                                 onClickCitation = handleClickCitation
                                             )
+                                        }
+                                        }
+                                        if (chatModeUserAvatar != null) {
+                                            Row(
+                                                verticalAlignment = Alignment.Top,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            ) {
+                                                Box(modifier = Modifier.weight(1f, fill = false), contentAlignment = Alignment.CenterEnd) {
+                                                    userBubble()
+                                                }
+                                                chatModeUserAvatar(segIndex == 0)
+                                            }
+                                        } else {
+                                            userBubble()
                                         }
                                     }
                                 }
@@ -726,6 +741,8 @@ private fun MessagePartsBlock(
                                 ) {
                                     textSegments.forEachIndexed { segIndex, segment ->
                                         val isLastSegment = segIndex == textSegments.lastIndex
+                                        // 聊天模式：每个气泡带头像
+                                        val bubbleContent = @Composable {
                                         if (settings.displaySetting.showAssistantBubble) {
                                             ChatMessageBubble(
                                                 role = role,
@@ -761,6 +778,20 @@ private fun MessagePartsBlock(
                                                 modifier = Modifier
                                                     .animateContentSize()
                                             )
+                                        }
+                                        } // end bubbleContent
+                                        if (chatModeAvatar != null && role == MessageRole.ASSISTANT) {
+                                            Row(
+                                                verticalAlignment = Alignment.Top,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            ) {
+                                                chatModeAvatar(segIndex == 0)
+                                                Box(modifier = Modifier.weight(1f, fill = false)) {
+                                                    bubbleContent()
+                                                }
+                                            }
+                                        } else {
+                                            bubbleContent()
                                         }
                                     }
                                 }

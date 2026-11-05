@@ -302,7 +302,7 @@ private fun ChatListNormal(
 
     // 聊天模式下消息组间距更大
     val isChatMode = assistant?.chatMode == ChatMode.CHAT
-    val messageSpacing = if (isChatMode) 20.dp else 12.dp
+    val messageSpacing = if (isChatMode) 16.dp else 12.dp
 
     Box(
         modifier = Modifier
