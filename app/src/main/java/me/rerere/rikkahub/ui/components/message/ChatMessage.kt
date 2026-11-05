@@ -412,14 +412,18 @@ private fun ChatMessageChatModeLayout(
                     value = assistant.avatar,
                     loading = loading,
                 )
-            } else if (model != null && settings.showModelIcon) {
+            } else if (model != null) {
                 AutoAIIcon(
                     name = model.modelId,
                     modifier = Modifier.size(32.dp),
                     loading = loading,
                 )
             } else {
-                Spacer(modifier = Modifier.size(32.dp))
+                AutoAIIcon(
+                    name = assistant?.name ?: "AI",
+                    modifier = Modifier.size(32.dp),
+                    loading = loading,
+                )
             }
             Spacer(modifier = Modifier.size(8.dp))
         }
