@@ -63,6 +63,7 @@ data class Assistant(
     val allowConversationSystemPrompt: Boolean = false, // 允许对话单独重写 system prompt
     val chatMode: ChatMode = ChatMode.CHAT, // 消息模式：聊天模式 / 工作模式
     val chatBubbleMaxWidthFraction: Float = 0.82f, // 聊天模式下气泡最大宽度比例 (0.7~0.9)
+    val chatColorThemeId: String? = "warm_home_rose", // 聊天配色预设ID，null=跟随全局主题
 )
 
 @Serializable

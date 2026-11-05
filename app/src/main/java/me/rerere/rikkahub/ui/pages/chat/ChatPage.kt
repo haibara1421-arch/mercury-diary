@@ -43,6 +43,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -106,6 +107,8 @@ import me.rerere.rikkahub.ui.context.LocalNavController
 import me.rerere.rikkahub.ui.context.LocalToaster
 import me.rerere.rikkahub.ui.context.Navigator
 import me.rerere.rikkahub.ui.hooks.ChatInputState
+import me.rerere.rikkahub.ui.theme.LocalChatColorScheme
+import me.rerere.rikkahub.ui.theme.findChatColorPreset
 import me.rerere.rikkahub.ui.hooks.EditStateContent
 import me.rerere.rikkahub.ui.hooks.useEditState
 import me.rerere.rikkahub.utils.base64Decode
@@ -343,6 +346,16 @@ private fun ChatPageContent(
 
     TTSAutoPlay(vm = vm, setting = setting, conversation = conversation)
 
+    // 助手级别聊天配色覆盖
+    val assistantChatColors = remember(assistant.chatColorThemeId, setting.userBubbleVariant) {
+        findChatColorPreset(assistant.chatColorThemeId)
+            ?.builder?.invoke(setting.userBubbleVariant)
+    }
+    val chatColorSchemeOverride = assistantChatColors ?: LocalChatColorScheme.current
+
+    CompositionLocalProvider(
+        LocalChatColorScheme provides chatColorSchemeOverride,
+    ) {
     Surface(
         color = MaterialTheme.colorScheme.background,
         modifier = Modifier.fillMaxSize()
@@ -551,6 +564,7 @@ private fun ChatPageContent(
             )
         }
     }
+    } // end CompositionLocalProvider (chatColorSchemeOverride)
 }
 
 @Composable

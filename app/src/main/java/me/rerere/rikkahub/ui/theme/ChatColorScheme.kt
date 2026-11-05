@@ -37,6 +37,31 @@ data class ChatColorScheme(
     val timestampText: Color? = null,
 )
 
+/**
+ * 聊天配色预设：用 id 查找。
+ * 每套预设返回一个 ChatColorScheme，支持 userBubble variant。
+ */
+data class ChatColorPreset(
+    val id: String,
+    val name: String,
+    val builder: (userBubbleVariant: String) -> ChatColorScheme,
+)
+
+val ChatColorPresets: List<ChatColorPreset> = listOf(
+    ChatColorPreset(
+        id = "warm_home_rose",
+        name = "晨光玫瑰",
+        builder = { variant ->
+            val bubbleColor = if (variant == "A") WarmHomeUserBubbleA else WarmHomeUserBubbleB
+            warmHomeLightChatColors(userBubble = bubbleColor)
+        },
+    ),
+    // 后续在这里加新预设
+)
+
+fun findChatColorPreset(id: String?): ChatColorPreset? =
+    if (id == null) null else ChatColorPresets.find { it.id == id }
+
 val LocalChatColorScheme = compositionLocalOf { ChatColorScheme() }
 
 /** 用户气泡候选色 A「雾粉白」 */
