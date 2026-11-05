@@ -609,7 +609,9 @@ private fun MessagePartsBlock(
 
     // Render parts in original order (group thinking/tool as chain-of-thought)
     val groupedParts = remember(parts) { parts.groupMessageParts() }
-    groupedParts.fastForEach { block ->
+    groupedParts.fastForEachIndexed { blockIndex, block ->
+        // 聊天模式：每个block左侧带头像（AI）或右侧带头像（用户）
+        val blockContent = @Composable {
         when (block) {
             is MessagePartBlock.ThinkingBlock -> {
                 if (block.steps.isNotEmpty()) {
@@ -694,8 +696,7 @@ private fun MessagePartsBlock(
                                     horizontalAlignment = Alignment.End,
                                     modifier = Modifier.fillMaxWidth(),
                                 ) {
-                                    textSegments.forEachIndexed { segIndex, segment ->
-                                        val userBubble = @Composable {
+                                    textSegments.forEach { segment ->
                                         ChatMessageBubble(
                                             role = role,
                                             color = ChatColors.userBubble.copy(alpha = settings.displaySetting.bubbleOpacity),
@@ -703,7 +704,7 @@ private fun MessagePartsBlock(
                                             onLongClick = onLongPressBubble,
                                             modifier = Modifier
                                                 .then(
-                                                    if (isChatMode) Modifier
+                                                    if (isChatMode) Modifier.widthIn(max = 280.dp)
                                                     else Modifier.padding(start = 24.dp)
                                                 )
                                                 .animateContentSize(),
@@ -712,20 +713,6 @@ private fun MessagePartsBlock(
                                                 content = segment,
                                                 onClickCitation = handleClickCitation
                                             )
-                                        }
-                                        }
-                                        if (chatModeUserAvatar != null) {
-                                            Row(
-                                                verticalAlignment = Alignment.Top,
-                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            ) {
-                                                Box(modifier = Modifier.weight(1f, fill = false), contentAlignment = Alignment.CenterEnd) {
-                                                    userBubble()
-                                                }
-                                                chatModeUserAvatar(segIndex == 0)
-                                            }
-                                        } else {
-                                            userBubble()
                                         }
                                     }
                                 }
@@ -741,7 +728,6 @@ private fun MessagePartsBlock(
                                     textSegments.forEachIndexed { segIndex, segment ->
                                         val isLastSegment = segIndex == textSegments.lastIndex
                                         // 聊天模式：每个气泡带头像
-                                        val bubbleContent = @Composable {
                                         if (settings.displaySetting.showAssistantBubble) {
                                             ChatMessageBubble(
                                                 role = role,
@@ -778,19 +764,6 @@ private fun MessagePartsBlock(
                                                     .animateContentSize()
                                             )
                                         }
-                                        } // end bubbleContent
-                                        if (chatModeAvatar != null && role == MessageRole.ASSISTANT) {
-                                            Row(
-                                                verticalAlignment = Alignment.Top,
-                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            ) {
-                                                chatModeAvatar(segIndex == 0)
-                                                Box(modifier = Modifier.weight(1f, fill = false)) {
-                                                    bubbleContent()
-                                                }
-                                            }
-                                        } else {
-                                            bubbleContent()
                                         }
                                     }
                                 }
@@ -879,6 +852,31 @@ private fun MessagePartsBlock(
                     }
                 }
             }
+        } // end blockContent
+        // 聊天模式包裹：AI左侧头像 / 用户右侧头像
+        if (chatModeAvatar != null && role == MessageRole.ASSISTANT) {
+            Row(
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                chatModeAvatar(blockIndex == 0)
+                Box(modifier = Modifier.weight(1f, fill = false)) {
+                    blockContent()
+                }
+            }
+        } else if (chatModeUserAvatar != null && role == MessageRole.USER) {
+            Row(
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Spacer(modifier = Modifier.weight(1f))
+                blockContent()
+                chatModeUserAvatar(blockIndex == 0)
+            }
+        } else {
+            blockContent()
         }
     }
 
