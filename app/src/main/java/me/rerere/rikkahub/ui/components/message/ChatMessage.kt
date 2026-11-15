@@ -14,12 +14,14 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -51,7 +53,9 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -452,6 +456,7 @@ private fun ChatMessageChatModeLayout(
                     annotations = message.annotations,
                     loading = loading,
                     model = model,
+                    timeString = if (settings.showDateTimeInMessage) message.createdAt.toJavaLocalDateTime().toMessageTimeString() else null,
                     onToolApproval = onToolApproval,
                     onToolAnswer = onToolAnswer,
                     onUserMessageClick = if (isUser) onEdit else null,
@@ -466,10 +471,13 @@ private fun ChatMessageChatModeLayout(
                 }
             }
 
-            // 时间戳和分支（聊天模式下始终显示在气泡下方）
+            // 时间戳和分支（聊天模式下显示在气泡下方）
+            // AI拆分气泡已在每个气泡下方显示时间戳，此处只显示分支选择器
+            // 用户消息仍然在此显示时间戳
             val hasBranches = node.messages.size > 1
             val showTime = settings.showDateTimeInMessage
-            if (hasBranches || showTime) {
+            val showTimeHere = showTime && isUser
+            if (hasBranches || showTimeHere) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -480,7 +488,7 @@ private fun ChatMessageChatModeLayout(
                             onUpdate = onUpdate,
                         )
                     }
-                    if (showTime) {
+                    if (showTimeHere) {
                         Text(
                             text = message.createdAt.toJavaLocalDateTime().toMessageTimeString(),
                             style = MaterialTheme.typography.labelSmall,
@@ -568,6 +576,7 @@ private fun MessagePartsBlock(
     parts: List<UIMessagePart>,
     annotations: List<UIMessageAnnotation>,
     loading: Boolean,
+    timeString: String? = null,
     onToolApproval: ((toolCallId: String, approved: Boolean, reason: String) -> Unit)? = null,
     onToolAnswer: ((toolCallId: String, answer: String) -> Unit)? = null,
     onUserMessageClick: (() -> Unit)? = null,
@@ -584,6 +593,11 @@ private fun MessagePartsBlock(
     // 聊天模式判定
     val isChatMode = assistant?.chatMode == ChatMode.CHAT
     val bubbleMaxWidthFraction = assistant?.chatBubbleMaxWidthFraction ?: 0.82f
+    // 计算气泡最大宽度（dp），用于widthIn限制而非fillMaxWidth
+    val screenWidthDp = LocalConfiguration.current.screenWidthDp.dp
+    // 需要减去头像+间距占用的空间（头像32dp + 间距8dp + 列表padding 16dp*2）
+    val availableWidth = screenWidthDp - 72.dp
+    val bubbleMaxWidth = availableWidth * bubbleMaxWidthFraction
 
     // 沉浸模式下单击助手气泡 → TTS 朗读当前气泡的 segment 文本
     val canClickBubbleTTS = settings.displaySetting.immersiveChatMode && role == MessageRole.ASSISTANT
@@ -711,10 +725,11 @@ private fun MessagePartsBlock(
                                             color = ChatColors.userBubble.copy(alpha = settings.displaySetting.bubbleOpacity),
                                             onClick = { onUserMessageClick?.invoke() },
                                             onLongClick = onLongPressBubble,
+                                            innerPadding = if (isChatMode) PaddingValues(horizontal = 10.dp, vertical = 7.dp) else PaddingValues(horizontal = 10.dp, vertical = 10.dp),
                                             // 用户气泡不占满整行，和助手的回复错开
                                             modifier = Modifier
                                                 .then(
-                                                    if (isChatMode) Modifier.fillMaxWidth(bubbleMaxWidthFraction)
+                                                    if (isChatMode) Modifier.widthIn(max = bubbleMaxWidth)
                                                     else Modifier.padding(start = 24.dp)
                                                 )
                                                 .animateContentSize(),
@@ -731,16 +746,21 @@ private fun MessagePartsBlock(
                                     verticalArrangement = Arrangement.spacedBy(if (settings.displaySetting.immersiveChatMode || isChatMode) 6.dp else 4.dp),
                                     horizontalAlignment = Alignment.Start,
                                     modifier = Modifier.then(
-                                        if (isChatMode) Modifier.fillMaxWidth(bubbleMaxWidthFraction + 0.02f)
+                                        if (isChatMode) Modifier.widthIn(max = bubbleMaxWidth)
                                         else Modifier.fillMaxWidth()
                                     ),
                                 ) {
                                     textSegments.forEachIndexed { segIndex, segment ->
                                         val isLastSegment = segIndex == textSegments.lastIndex
+                                        // 聊天模式：每个拆分气泡是独立视觉单元（气泡+时间戳）
+                                        Column(
+                                            horizontalAlignment = Alignment.Start,
+                                        ) {
                                         if (settings.displaySetting.showAssistantBubble) {
                                             ChatMessageBubble(
                                                 role = role,
                                                 color = ChatColors.assistantBubble.copy(alpha = settings.displaySetting.bubbleOpacity),
+                                                innerPadding = if (isChatMode) PaddingValues(horizontal = 10.dp, vertical = 7.dp) else PaddingValues(horizontal = 10.dp, vertical = 10.dp),
                                                 onClick = if (canClickBubbleTTS) {{
                                                     if (isSpeaking) {
                                                         tts.stop()
@@ -773,6 +793,17 @@ private fun MessagePartsBlock(
                                                     .animateContentSize()
                                             )
                                         }
+                                        // 聊天模式：每个拆分气泡下方显示时间戳
+                                        if (isChatMode && timeString != null && !streamingText) {
+                                            Text(
+                                                text = timeString,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                                maxLines = 1,
+                                                modifier = Modifier.padding(start = 4.dp, top = 2.dp),
+                                            )
+                                        }
+                                        } // end inner Column
                                     }
                                 }
                             }
@@ -882,6 +913,7 @@ private fun ChatMessageBubble(
     role: MessageRole,
     color: Color,
     modifier: Modifier = Modifier,
+    innerPadding: PaddingValues = PaddingValues(horizontal = 10.dp, vertical = 10.dp),
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     content: @Composable () -> Unit,
@@ -912,7 +944,7 @@ private fun ChatMessageBubble(
                 },
             )
             // MarkdownBlock 自带 4dp 的水平内边距
-            .padding(horizontal = 10.dp, vertical = 10.dp),
+            .padding(innerPadding),
     ) {
         CompositionLocalProvider(LocalContentColor provides contentColor) { content() }
     }

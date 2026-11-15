@@ -78,6 +78,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import me.rerere.ui.toast.ToastType
 import dev.chrisbanes.haze.HazeState
@@ -278,7 +279,7 @@ fun ChatInput(
                 color = if (settings.displaySetting.enableBlurEffect) Color.Transparent else containerColor,
             ) {
                 Column(
-                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 5.dp),
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
                     verticalArrangement = Arrangement.spacedBy(0.dp)
                 ) {
                     if (voiceState.phase != VoicePhase.Off) {
@@ -304,7 +305,7 @@ fun ChatInput(
                         leadingIcon = {
                             Box(
                                 modifier = Modifier
-                                    .size(32.dp)
+                                    .size(30.dp)
                                     .clickable(
                                         indication = androidx.compose.material3.ripple(),
                                         interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
@@ -315,7 +316,7 @@ fun ChatInput(
                                 Icon(
                                     MercuryIcons.CirclePlus,
                                     contentDescription = null,
-                                    modifier = Modifier.size(22.dp),
+                                    modifier = Modifier.size(20.dp),
                                     tint = ChatColors.plusIconColor,
                                 )
                             }
@@ -330,7 +331,7 @@ fun ChatInput(
                                         onTriggerAIReply()
                                     }
                                 },
-                                modifier = Modifier.size(32.dp),
+                                modifier = Modifier.size(30.dp),
                                 shape = CircleShape,
                                 color = ChatColors.aiStarBackground,
                             ) {
@@ -338,7 +339,7 @@ fun ChatInput(
                                     Icon(
                                         if (loading) HugeIcons.Cancel01 else MercuryIcons.AiStar,
                                         contentDescription = null,
-                                        modifier = Modifier.size(20.dp),
+                                        modifier = Modifier.size(19.dp),
                                         tint = ChatColors.aiStarIconColor,
                                     )
                                 }
@@ -389,7 +390,7 @@ private fun SendButton(
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
-            .size(32.dp)
+            .size(30.dp)
             .testTag("chat_send_button")
             .clip(CircleShape)
             .combinedClickable(
@@ -590,16 +591,20 @@ private fun TextInputRow(
                 state = state.textContent,
                 modifier = Modifier
                     .weight(1f)
-                    .heightIn(min = 36.dp)
+                    .heightIn(min = 32.dp)
                     .testTag("chat_input")
                     .contentReceiver(receiveContentListener)
                     .onFocusChanged {
                         isFocused = it.isFocused
                     },
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(20.dp),
                 placeholder = {
-                    Text(stringResource(R.string.chat_input_placeholder))
+                    Text(
+                        stringResource(R.string.chat_input_placeholder),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                    )
                 },
+                textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
                 lineLimits = TextFieldLineLimits.MultiLine(maxHeightInLines = 5),
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.Sentences,
