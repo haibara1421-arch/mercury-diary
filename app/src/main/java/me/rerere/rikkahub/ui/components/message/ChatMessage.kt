@@ -126,6 +126,7 @@ fun ChatMessage(
     model: Model? = null,
     assistant: Assistant? = null,
     lastMessage: Boolean = false,
+    showAvatar: Boolean = true,
     onFork: () -> Unit,
     onRegenerate: () -> Unit,
     onEdit: () -> Unit,
@@ -173,6 +174,7 @@ fun ChatMessage(
             assistant = assistant,
             loading = loading,
             lastMessage = lastMessage,
+            showAvatar = showAvatar,
             settings = settings,
             textStyle = textStyle,
             modifier = modifier,
@@ -374,6 +376,7 @@ private fun ChatMessageChatModeLayout(
     assistant: Assistant?,
     loading: Boolean,
     lastMessage: Boolean,
+    showAvatar: Boolean = true,
     settings: DisplaySetting,
     textStyle: TextStyle,
     modifier: Modifier = Modifier,
@@ -402,28 +405,32 @@ private fun ChatMessageChatModeLayout(
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
         verticalAlignment = Alignment.Top,
     ) {
-        // AI头像（左侧）—— 聊天模式始终显示
+        // AI头像（左侧）—— 聊天模式：连续同角色消息只第一条显示头像
         if (!isUser) {
-            val useAssistantAvatar = assistant?.useAssistantAvatar == true
-            if (useAssistantAvatar) {
-                UIAvatar(
-                    name = assistant.name,
-                    modifier = Modifier.size(32.dp),
-                    value = assistant.avatar,
-                    loading = loading,
-                )
-            } else if (model != null) {
-                AutoAIIcon(
-                    name = model.modelId,
-                    modifier = Modifier.size(32.dp),
-                    loading = loading,
-                )
+            if (showAvatar) {
+                val useAssistantAvatar = assistant?.useAssistantAvatar == true
+                if (useAssistantAvatar) {
+                    UIAvatar(
+                        name = assistant.name,
+                        modifier = Modifier.size(32.dp),
+                        value = assistant.avatar,
+                        loading = loading,
+                    )
+                } else if (model != null) {
+                    AutoAIIcon(
+                        name = model.modelId,
+                        modifier = Modifier.size(32.dp),
+                        loading = loading,
+                    )
+                } else {
+                    AutoAIIcon(
+                        name = assistant?.name ?: "AI",
+                        modifier = Modifier.size(32.dp),
+                        loading = loading,
+                    )
+                }
             } else {
-                AutoAIIcon(
-                    name = assistant?.name ?: "AI",
-                    modifier = Modifier.size(32.dp),
-                    loading = loading,
-                )
+                Spacer(modifier = Modifier.size(32.dp))
             }
             Spacer(modifier = Modifier.size(8.dp))
         }
@@ -486,15 +493,19 @@ private fun ChatMessageChatModeLayout(
             }
         }
 
-        // 用户头像（右侧）
+        // 用户头像（右侧）—— 连续同角色消息只第一条显示头像
         if (isUser && settings.showUserAvatar) {
             Spacer(modifier = Modifier.size(8.dp))
-            UIAvatar(
-                name = settings.userNickname,
-                modifier = Modifier.size(32.dp),
-                value = settings.userAvatar,
-                loading = false,
-            )
+            if (showAvatar) {
+                UIAvatar(
+                    name = settings.userNickname,
+                    modifier = Modifier.size(32.dp),
+                    value = settings.userAvatar,
+                    loading = false,
+                )
+            } else {
+                Spacer(modifier = Modifier.size(32.dp))
+            }
         }
     }
 
@@ -690,7 +701,7 @@ private fun MessagePartsBlock(
                         val textContent = @Composable {
                             if (role == MessageRole.USER) {
                                 Column(
-                                    verticalArrangement = Arrangement.spacedBy(if (settings.displaySetting.immersiveChatMode || isChatMode) 8.dp else 4.dp),
+                                    verticalArrangement = Arrangement.spacedBy(if (settings.displaySetting.immersiveChatMode || isChatMode) 6.dp else 4.dp),
                                     horizontalAlignment = Alignment.End,
                                     modifier = Modifier.fillMaxWidth(),
                                 ) {
@@ -717,7 +728,7 @@ private fun MessagePartsBlock(
                                 }
                             } else {
                                 Column(
-                                    verticalArrangement = Arrangement.spacedBy(if (settings.displaySetting.immersiveChatMode || isChatMode) 8.dp else 4.dp),
+                                    verticalArrangement = Arrangement.spacedBy(if (settings.displaySetting.immersiveChatMode || isChatMode) 6.dp else 4.dp),
                                     horizontalAlignment = Alignment.Start,
                                     modifier = Modifier.then(
                                         if (isChatMode) Modifier.fillMaxWidth(bubbleMaxWidthFraction + 0.02f)

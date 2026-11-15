@@ -347,7 +347,7 @@ private fun ChatListNormal(
                     bottom = 32.dp + innerPadding.calculateBottomPadding(),
                 ),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(messageSpacing),
+                verticalArrangement = Arrangement.spacedBy(if (isChatMode) 0.dp else messageSpacing),
                 modifier = Modifier
                     .fillMaxSize()
                     .topFadingEdge(innerPadding.calculateTopPadding() + 24.dp)
@@ -357,7 +357,20 @@ private fun ChatListNormal(
                 items = conversation.messageNodes,
                 key = { index, item -> item.id },
             ) { index, node ->
-                Column {
+                // 聊天模式：判断是否连续同角色消息，决定是否显示头像
+                val prevSameRole = if (isChatMode && index > 0) {
+                    val prevNode = conversation.messageNodes[index - 1]
+                    prevNode.currentMessage.role == node.currentMessage.role
+                } else {
+                    false
+                }
+                val showAvatar = !prevSameRole
+                val topSpacing = if (isChatMode) {
+                    if (index == 0) 0.dp else if (prevSameRole) 6.dp else 16.dp
+                } else {
+                    0.dp // 非聊天模式由LazyColumn的spacedBy控制
+                }
+                Column(modifier = if (topSpacing > 0.dp) Modifier.padding(top = topSpacing) else Modifier) {
                     ListSelectableItem(
                         key = node.id,
                         onSelectChange = {
@@ -376,6 +389,7 @@ private fun ChatListNormal(
                                 ?: node.currentMessage.snapshotModel(),
                             assistant = assistant,
                             loading = loading && index == lastMessageIndex,
+                            showAvatar = showAvatar,
                             onRegenerate = {
                                 onRegenerate(node.currentMessage)
                             },

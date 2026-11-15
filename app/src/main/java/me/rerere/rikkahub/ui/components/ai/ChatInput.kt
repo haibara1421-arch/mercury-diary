@@ -266,7 +266,7 @@ fun ChatInput(
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 4.dp)
+                    .padding(horizontal = 12.dp, vertical = 2.dp)
                     .chatInputHaze(
                         hazeState = hazeState,
                         displaySetting = settings.displaySetting,
@@ -278,7 +278,7 @@ fun ChatInput(
                 color = if (settings.displaySetting.enableBlurEffect) Color.Transparent else containerColor,
             ) {
                 Column(
-                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 0.dp),
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 5.dp),
                     verticalArrangement = Arrangement.spacedBy(0.dp)
                 ) {
                     if (voiceState.phase != VoicePhase.Off) {
