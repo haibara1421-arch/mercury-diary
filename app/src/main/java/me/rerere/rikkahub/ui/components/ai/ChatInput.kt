@@ -279,7 +279,7 @@ fun ChatInput(
                 color = if (settings.displaySetting.enableBlurEffect) Color.Transparent else containerColor,
             ) {
                 Column(
-                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
                     verticalArrangement = Arrangement.spacedBy(0.dp)
                 ) {
                     if (voiceState.phase != VoicePhase.Off) {
@@ -580,7 +580,7 @@ private fun TextInputRow(
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             // 左侧按钮在 TextField 外面
             if (leadingIcon != null) {
@@ -597,7 +597,7 @@ private fun TextInputRow(
                     .onFocusChanged {
                         isFocused = it.isFocused
                     },
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(percent = 50),
                 placeholder = {
                     Text(
                         stringResource(R.string.chat_input_placeholder),
