@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -38,6 +39,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
@@ -67,6 +69,7 @@ import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -587,24 +590,19 @@ private fun TextInputRow(
                 leadingIcon()
             }
 
-            TextField(
+            BasicTextField(
                 state = state.textContent,
                 modifier = Modifier
                     .weight(1f)
-                    .heightIn(min = 32.dp)
                     .testTag("chat_input")
                     .contentReceiver(receiveContentListener)
                     .onFocusChanged {
                         isFocused = it.isFocused
                     },
-                shape = RoundedCornerShape(20.dp),
-                placeholder = {
-                    Text(
-                        stringResource(R.string.chat_input_placeholder),
-                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
-                    )
-                },
-                textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                textStyle = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = 14.sp,
+                    color = ChatColors.inputFieldText,
+                ),
                 lineLimits = TextFieldLineLimits.MultiLine(maxHeightInLines = 5),
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.Sentences,
@@ -615,30 +613,43 @@ private fun TextInputRow(
                         onSendMessage()
                     }
                 },
-                colors = TextFieldDefaults.colors().copy(
-                    unfocusedIndicatorColor = Color.Transparent,
-                    focusedIndicatorColor = Color.Transparent,
-                    focusedContainerColor = ChatColors.inputFieldBackground,
-                    unfocusedContainerColor = ChatColors.inputFieldBackground,
-                    focusedTextColor = ChatColors.inputFieldText,
-                    unfocusedTextColor = ChatColors.inputFieldText,
-                    focusedPlaceholderColor = ChatColors.inputFieldPlaceholder,
-                    unfocusedPlaceholderColor = ChatColors.inputFieldPlaceholder,
-                ),
-                trailingIcon = if (trailingIcons == null) {{
-                    if (isFocused) {
-                        IconButton(
-                            onClick = {
-                                isFullScreen = !isFullScreen
-                            }) {
-                            Icon(HugeIcons.Fullscreen, null)
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                decorator = { innerTextField ->
+                    Row(
+                        modifier = Modifier
+                            .background(ChatColors.inputFieldBackground, RoundedCornerShape(20.dp))
+                            .heightIn(min = 36.dp)
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        // 内置前导图标（快捷消息按钮，仅在加号移到外面且有快捷消息时显示）
+                        if (leadingIcon == null && quickMessages.isNotEmpty()) {
+                            QuickMessageButton(quickMessages = quickMessages, state = state)
+                        }
+
+                        Box(modifier = Modifier.weight(1f)) {
+                            if (state.textContent.text.isEmpty()) {
+                                Text(
+                                    stringResource(R.string.chat_input_placeholder),
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                                    color = ChatColors.inputFieldPlaceholder,
+                                )
+                            }
+                            innerTextField()
+                        }
+
+                        // 内置尾部图标（全屏按钮，仅在无外部尾部按钮且输入框获焦时显示）
+                        if (trailingIcons == null && isFocused) {
+                            Icon(
+                                HugeIcons.Fullscreen,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .padding(start = 4.dp)
+                                    .size(20.dp)
+                                    .clickable { isFullScreen = !isFullScreen },
+                            )
                         }
                     }
-                }} else null,
-                leadingIcon = when {
-                    leadingIcon != null -> null  // 已移到外面
-                    quickMessages.isNotEmpty() -> {{ QuickMessageButton(quickMessages = quickMessages, state = state) }}
-                    else -> null
                 },
             )
 
