@@ -7,21 +7,16 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -53,14 +48,11 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.LinkAnnotation
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
@@ -86,30 +78,19 @@ import me.rerere.hugeicons.stroke.Video01
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.Screen
 import me.rerere.rikkahub.data.model.Assistant
-import me.rerere.rikkahub.data.model.ChatMode
 import me.rerere.rikkahub.data.model.AssistantAffectScope
-import me.rerere.rikkahub.data.datastore.DisplaySetting
 import me.rerere.rikkahub.data.model.MessageNode
 import me.rerere.rikkahub.data.model.replaceRegexes
 import me.rerere.rikkahub.ui.components.richtext.MarkdownBlock
 import me.rerere.rikkahub.ui.components.richtext.SelectableContent
 import me.rerere.rikkahub.ui.components.richtext.ZoomableAsyncImage
 import me.rerere.rikkahub.ui.components.richtext.buildMarkdownPreviewHtml
-import me.rerere.rikkahub.ui.components.ui.AutoAIIcon
 import me.rerere.rikkahub.ui.components.ui.ChainOfThought
 import me.rerere.rikkahub.ui.components.ui.Favicon
 import me.rerere.rikkahub.ui.components.ui.FaviconRow
-import me.rerere.rikkahub.ui.components.ui.UIAvatar
 import me.rerere.rikkahub.ui.context.LocalNavController
 import me.rerere.rikkahub.ui.modifier.shimmer
 import me.rerere.rikkahub.ui.context.LocalSettings
-import me.rerere.rikkahub.ui.theme.ChatColors
-import me.rerere.rikkahub.utils.removeBracketedContent
-import me.rerere.rikkahub.utils.extractQuotedContentAsText
-import androidx.compose.runtime.collectAsState
-import me.rerere.rikkahub.ui.context.LocalTTSState
-import kotlinx.datetime.toJavaLocalDateTime
-import me.rerere.rikkahub.utils.toMessageTimeString
 import me.rerere.rikkahub.ui.context.LocalWorkspaceId
 import me.rerere.rikkahub.ui.theme.LocalChatFontFamily
 import me.rerere.rikkahub.ui.theme.rememberChatFontFamily
@@ -130,7 +111,6 @@ fun ChatMessage(
     model: Model? = null,
     assistant: Assistant? = null,
     lastMessage: Boolean = false,
-    showAvatar: Boolean = true,
     onFork: () -> Unit,
     onRegenerate: () -> Unit,
     onEdit: () -> Unit,
@@ -154,6 +134,17 @@ fun ChatMessage(
         )
         return
     }
+    // 助手消息在第一个 token 之前也可能只有 Notice，那时要走下面的流程才有加载状态和操作栏
+    if (message.role == MessageRole.USER && message.isNoticeOnly) {
+        ChatMessageNotices(
+            message = message,
+            // 回复失败时这是最后一个节点，没有助手消息可以点重新生成
+            onRetry = onRegenerate.takeIf { lastMessage && !loading },
+            onDelete = onDelete,
+            modifier = modifier,
+        )
+        return
+    }
     val settings = LocalSettings.current.displaySetting
     val chatFontFamily = LocalChatFontFamily.current ?: rememberChatFontFamily(settings)
     val textStyle = LocalTextStyle.current.copy(
@@ -166,36 +157,6 @@ fun ChatMessage(
     val navController = LocalNavController.current
     val context = LocalContext.current
     val colorScheme = MaterialTheme.colorScheme
-    val isChatMode = assistant?.chatMode == ChatMode.CHAT
-    val isUser = message.role == MessageRole.USER
-
-    // 聊天模式：头像在气泡旁边（Row包裹）；工作模式：头像在气泡上方（原有布局）
-    if (isChatMode) {
-        ChatMessageChatModeLayout(
-            node = node,
-            message = message,
-            model = model,
-            assistant = assistant,
-            loading = loading,
-            lastMessage = lastMessage,
-            showAvatar = showAvatar,
-            settings = settings,
-            textStyle = textStyle,
-            modifier = modifier,
-            onRegenerate = onRegenerate,
-            onEdit = onEdit,
-            onShare = onShare,
-            onFork = onFork,
-            onDelete = onDelete,
-            onUpdate = onUpdate,
-            isFavorite = isFavorite,
-            onToggleFavorite = onToggleFavorite,
-            onTranslate = onTranslate,
-            onClearTranslation = onClearTranslation,
-            onToolApproval = onToolApproval,
-            onToolAnswer = onToolAnswer,
-        )
-    } else {
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = if (message.role == MessageRole.USER) Alignment.End else Alignment.Start,
@@ -237,7 +198,6 @@ fun ChatMessage(
                 onToolApproval = onToolApproval,
                 onToolAnswer = onToolAnswer,
                 onUserMessageClick = if (message.role == MessageRole.USER) onEdit else null,
-                onLongPressBubble = if (settings.immersiveChatMode) {{ showActionsSheet = true }} else null,
             )
 
             message.translation?.let { translation ->
@@ -248,9 +208,7 @@ fun ChatMessage(
             }
         }
 
-        val showActions = if (settings.immersiveChatMode) {
-            false
-        } else if (lastMessage) {
+        val showActions = if (lastMessage) {
             !loading
         } else {
             message.parts.isEmptyUIMessage().not()
@@ -278,34 +236,6 @@ fun ChatMessage(
                     onTranslate = onTranslate,
                     onClearTranslation = onClearTranslation
                 )
-            }
-        }
-
-        // When action buttons are hidden, show branch selector and/or timestamp standalone
-        if (settings.immersiveChatMode) {
-            val hasBranches = node.messages.size > 1
-            val showTime = settings.showDateTimeInMessage
-            if (hasBranches || showTime) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    if (hasBranches) {
-                        ChatMessageBranchSelector(
-                            node = node,
-                            onUpdate = onUpdate,
-                        )
-                    }
-                    if (showTime) {
-                        Text(
-                            text = message.createdAt.toJavaLocalDateTime().toMessageTimeString(),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            maxLines = 1,
-                            modifier = Modifier.padding(horizontal = 4.dp),
-                        )
-                    }
-                }
             }
         }
 
@@ -349,208 +279,7 @@ fun ChatMessage(
             },
             onDismissRequest = {
                 showActionsSheet = false
-            },
-            onRegenerate = onRegenerate,
-            onTranslate = onTranslate,
-            onClearTranslation = onClearTranslation,
-        )
-    }
-
-    if (showSelectCopySheet) {
-        ChatMessageCopySheet(
-            message = message,
-            onDismissRequest = {
-                showSelectCopySheet = false
             }
-        )
-    }
-    } // end else (work mode)
-}
-
-/**
- * 聊天模式布局：头像在气泡旁边，像真实聊天软件。
- * AI消息：左侧小头像 + 右侧气泡区
- * 用户消息：左侧气泡区 + 右侧小头像
- */
-@Composable
-private fun ChatMessageChatModeLayout(
-    node: MessageNode,
-    message: UIMessage,
-    model: Model?,
-    assistant: Assistant?,
-    loading: Boolean,
-    lastMessage: Boolean,
-    showAvatar: Boolean = true,
-    settings: DisplaySetting,
-    textStyle: TextStyle,
-    modifier: Modifier = Modifier,
-    onRegenerate: () -> Unit,
-    onEdit: () -> Unit,
-    onShare: () -> Unit,
-    onFork: () -> Unit,
-    onDelete: () -> Unit,
-    onUpdate: (MessageNode) -> Unit,
-    isFavorite: Boolean,
-    onToggleFavorite: (() -> Unit)?,
-    onTranslate: ((UIMessage, Locale) -> Unit)?,
-    onClearTranslation: (UIMessage) -> Unit,
-    onToolApproval: ((toolCallId: String, approved: Boolean, reason: String) -> Unit)?,
-    onToolAnswer: ((toolCallId: String, answer: String) -> Unit)?,
-) {
-    val isUser = message.role == MessageRole.USER
-    val navController = LocalNavController.current
-    val context = LocalContext.current
-    val colorScheme = MaterialTheme.colorScheme
-    var showActionsSheet by remember { mutableStateOf(false) }
-    var showSelectCopySheet by remember { mutableStateOf(false) }
-
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
-        verticalAlignment = Alignment.Top,
-    ) {
-        // AI头像（左侧）—— 聊天模式：连续同角色消息只第一条显示头像
-        if (!isUser) {
-            if (showAvatar) {
-                val useAssistantAvatar = assistant?.useAssistantAvatar == true
-                if (useAssistantAvatar) {
-                    UIAvatar(
-                        name = assistant.name,
-                        modifier = Modifier.size(32.dp),
-                        value = assistant.avatar,
-                        loading = loading,
-                    )
-                } else if (model != null) {
-                    AutoAIIcon(
-                        name = model.modelId,
-                        modifier = Modifier.size(32.dp),
-                        loading = loading,
-                    )
-                } else {
-                    AutoAIIcon(
-                        name = assistant?.name ?: "AI",
-                        modifier = Modifier.size(32.dp),
-                        loading = loading,
-                    )
-                }
-            } else {
-                Spacer(modifier = Modifier.size(32.dp))
-            }
-            Spacer(modifier = Modifier.size(8.dp))
-        }
-
-        // 气泡区域
-        Column(
-            modifier = Modifier.weight(1f, fill = false),
-            horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            CompositionLocalProvider(
-                LocalTextStyle provides textStyle,
-                LocalWorkspaceId provides assistant?.workspaceId?.toString(),
-            ) {
-                MessagePartsBlock(
-                    assistant = assistant,
-                    role = message.role,
-                    parts = message.parts,
-                    annotations = message.annotations,
-                    loading = loading,
-                    model = model,
-                    timeString = if (settings.showDateTimeInMessage) message.createdAt.toJavaLocalDateTime().toMessageTimeString() else null,
-                    onToolApproval = onToolApproval,
-                    onToolAnswer = onToolAnswer,
-                    onUserMessageClick = if (isUser) onEdit else null,
-                    onLongPressBubble = { showActionsSheet = true },
-                )
-
-                message.translation?.let { translation ->
-                    CollapsibleTranslationText(
-                        content = translation,
-                        onClickCitation = {}
-                    )
-                }
-            }
-
-            // 时间戳和分支（聊天模式下显示在气泡下方）
-            // AI拆分气泡已在每个气泡下方显示时间戳，此处只显示分支选择器
-            // 用户消息仍然在此显示时间戳
-            val hasBranches = node.messages.size > 1
-            val showTime = settings.showDateTimeInMessage
-            val showTimeHere = showTime && isUser
-            if (hasBranches || showTimeHere) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    if (hasBranches) {
-                        ChatMessageBranchSelector(
-                            node = node,
-                            onUpdate = onUpdate,
-                        )
-                    }
-                    if (showTimeHere) {
-                        Text(
-                            text = message.createdAt.toJavaLocalDateTime().toMessageTimeString(),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            maxLines = 1,
-                            modifier = Modifier.padding(horizontal = 4.dp),
-                        )
-                    }
-                }
-            }
-        }
-
-        // 用户头像（右侧）—— 连续同角色消息只第一条显示头像
-        if (isUser && settings.showUserAvatar) {
-            Spacer(modifier = Modifier.size(8.dp))
-            if (showAvatar) {
-                UIAvatar(
-                    name = settings.userNickname,
-                    modifier = Modifier.size(32.dp),
-                    value = settings.userAvatar,
-                    loading = false,
-                )
-            } else {
-                Spacer(modifier = Modifier.size(32.dp))
-            }
-        }
-    }
-
-    if (showActionsSheet) {
-        ChatMessageActionsSheet(
-            message = message,
-            onEdit = onEdit,
-            onDelete = onDelete,
-            onShare = onShare,
-            onFork = onFork,
-            model = model,
-            onSelectAndCopy = {
-                showSelectCopySheet = true
-            },
-            isFavorite = isFavorite,
-            onToggleFavorite = onToggleFavorite,
-            onWebViewPreview = {
-                val textContent = message.parts
-                    .filterIsInstance<UIMessagePart.Text>()
-                    .joinToString("\n\n") { it.text }
-                    .trim()
-                if (textContent.isNotBlank()) {
-                    val htmlContent = buildMarkdownPreviewHtml(
-                        context = context,
-                        markdown = textContent,
-                        colorScheme = colorScheme
-                    )
-                    val contentId = WebViewContentCache.store(context.cacheDir, htmlContent)
-                    navController.navigate(Screen.WebView(contentId = contentId))
-                }
-            },
-            onDismissRequest = {
-                showActionsSheet = false
-            },
-            onRegenerate = onRegenerate,
-            onTranslate = onTranslate,
-            onClearTranslation = onClearTranslation,
         )
     }
 
@@ -576,31 +305,15 @@ private fun MessagePartsBlock(
     parts: List<UIMessagePart>,
     annotations: List<UIMessageAnnotation>,
     loading: Boolean,
-    timeString: String? = null,
     onToolApproval: ((toolCallId: String, approved: Boolean, reason: String) -> Unit)? = null,
     onToolAnswer: ((toolCallId: String, answer: String) -> Unit)? = null,
     onUserMessageClick: (() -> Unit)? = null,
-    onLongPressBubble: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     // 消息输出HapticFeedback
     val hapticFeedback = LocalHapticFeedback.current
     val settings = LocalSettings.current
-    val tts = LocalTTSState.current
-    val isSpeaking by tts.isSpeaking.collectAsState()
     val partsState by rememberUpdatedState(parts)
-
-    // 聊天模式判定
-    val isChatMode = assistant?.chatMode == ChatMode.CHAT
-    val bubbleMaxWidthFraction = assistant?.chatBubbleMaxWidthFraction ?: 0.82f
-    // 计算气泡最大宽度（dp），用于widthIn限制而非fillMaxWidth
-    val screenWidthDp = LocalConfiguration.current.screenWidthDp.dp
-    // 需要减去头像+间距占用的空间（头像32dp + 间距8dp + 列表padding 16dp*2）
-    val availableWidth = screenWidthDp - 72.dp
-    val bubbleMaxWidth = availableWidth * bubbleMaxWidthFraction
-
-    // 沉浸模式下单击助手气泡 → TTS 朗读当前气泡的 segment 文本
-    val canClickBubbleTTS = settings.displaySetting.immersiveChatMode && role == MessageRole.ASSISTANT
 
     val handleClickCitation: (String) -> Unit = remember {
         handler@{ citationId ->
@@ -652,7 +365,7 @@ private fun MessagePartsBlock(
                         collapsedVisibleCount = collapsedVisibleCount,
                         collapsedAdaptiveWidth = isReasoningOnlyBlock,
                         cardColors = CardDefaults.cardColors(
-                            containerColor = ChatColors.assistantBubble.copy(alpha = settings.displaySetting.bubbleOpacity),
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = settings.displaySetting.bubbleOpacity),
                         ),
                     ) { step ->
                         when (step) {
@@ -684,6 +397,8 @@ private fun MessagePartsBlock(
                                     ChatMessageServerToolStep(tool = step.tool)
                                 }
                             }
+
+                            is ThinkingStep.NoticeStep -> ChatMessageNoticeStep(notice = step.notice)
                         }
                     }
                 }
@@ -697,114 +412,73 @@ private fun MessagePartsBlock(
             is MessagePartBlock.ContentBlock -> key(block.index) {
                 when (val part = block.part) {
                     is UIMessagePart.Text -> {
-                        // 跳过空文本（工具调用间的空 content）
-                        if (part.text.isNotBlank()) {
                         // 只有正在生成的最后一段文字可能停在没写完的语法上
                         val streamingText = loading && block.index == parts.lastIndex
-                        val processedText = part.text.replaceRegexes(
-                            assistant = assistant,
-                            scope = if (role == MessageRole.USER) AssistantAffectScope.USER else AssistantAffectScope.ASSISTANT,
-                            visual = true,
-                        )
-                        // 气泡拆分：按连续空行拆成多段，每段独立气泡
-                        val textSegments = if ((settings.displaySetting.enableBubbleSplit || settings.displaySetting.immersiveChatMode || isChatMode) && !streamingText) {
-                            processedText.split(Regex("\n\n+")).filter { it.isNotBlank() }
-                        } else {
-                            listOf(processedText)
-                        }
                         val textContent = @Composable {
                             if (role == MessageRole.USER) {
-                                Column(
-                                    verticalArrangement = Arrangement.spacedBy(if (settings.displaySetting.immersiveChatMode || isChatMode) 6.dp else 4.dp),
-                                    horizontalAlignment = Alignment.End,
-                                    modifier = Modifier.fillMaxWidth(),
+                                ChatMessageBubble(
+                                    role = role,
+                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = settings.displaySetting.bubbleOpacity),
+                                    onClick = { onUserMessageClick?.invoke() },
+                                    // 用户气泡不占满整行，和助手的回复错开
+                                    modifier = Modifier
+                                        .padding(start = 24.dp)
+                                        .animateContentSize(),
                                 ) {
-                                    textSegments.forEach { segment ->
-                                        ChatMessageBubble(
-                                            role = role,
-                                            color = ChatColors.userBubble.copy(alpha = settings.displaySetting.bubbleOpacity),
-                                            onClick = { onUserMessageClick?.invoke() },
-                                            onLongClick = onLongPressBubble,
-                                            innerPadding = if (isChatMode) PaddingValues(horizontal = 10.dp, vertical = 7.dp) else PaddingValues(horizontal = 10.dp, vertical = 10.dp),
-                                            // 用户气泡不占满整行，和助手的回复错开
-                                            modifier = Modifier
-                                                .then(
-                                                    if (isChatMode) Modifier.widthIn(max = bubbleMaxWidth)
-                                                    else Modifier.padding(start = 24.dp)
-                                                )
-                                                .animateContentSize(),
-                                        ) {
-                                            MarkdownBlock(
-                                                content = segment,
-                                                onClickCitation = handleClickCitation
-                                            )
-                                        }
-                                    }
+                                    MarkdownBlock(
+                                        content = part.text.replaceRegexes(
+                                            assistant = assistant,
+                                            scope = AssistantAffectScope.USER,
+                                            visual = true,
+                                        ),
+                                        onClickCitation = handleClickCitation
+                                    )
                                 }
                             } else {
-                                Column(
-                                    verticalArrangement = Arrangement.spacedBy(if (settings.displaySetting.immersiveChatMode || isChatMode) 6.dp else 4.dp),
-                                    horizontalAlignment = Alignment.Start,
-                                    modifier = Modifier.then(
-                                        if (isChatMode) Modifier.widthIn(max = bubbleMaxWidth)
-                                        else Modifier.fillMaxWidth()
-                                    ),
-                                ) {
-                                    textSegments.forEachIndexed { segIndex, segment ->
-                                        val isLastSegment = segIndex == textSegments.lastIndex
-                                        // 聊天模式：每个拆分气泡是独立视觉单元（气泡+时间戳）
-                                        Column(
-                                            horizontalAlignment = Alignment.Start,
-                                        ) {
-                                        if (settings.displaySetting.showAssistantBubble) {
-                                            ChatMessageBubble(
-                                                role = role,
-                                                color = ChatColors.assistantBubble.copy(alpha = settings.displaySetting.bubbleOpacity),
-                                                innerPadding = if (isChatMode) PaddingValues(horizontal = 10.dp, vertical = 7.dp) else PaddingValues(horizontal = 10.dp, vertical = 10.dp),
-                                                onClick = if (canClickBubbleTTS) {{
-                                                    if (isSpeaking) {
-                                                        tts.stop()
-                                                    } else {
-                                                        var textToSpeak = segment
-                                                        if (settings.displaySetting.ttsOnlyReadQuoted) {
-                                                            textToSpeak = textToSpeak.extractQuotedContentAsText() ?: textToSpeak
-                                                        }
-                                                        if (settings.displaySetting.ttsOnlyReadOutsideBrackets) {
-                                                            textToSpeak = textToSpeak.removeBracketedContent() ?: textToSpeak
-                                                        }
-                                                        tts.speak(textToSpeak)
-                                                    }
-                                                }} else null,
-                                                onLongClick = onLongPressBubble,
-                                                modifier = Modifier.animateContentSize(),
-                                            ) {
-                                                MarkdownBlock(
-                                                    content = segment,
-                                                    streaming = streamingText && isLastSegment,
-                                                    onClickCitation = handleClickCitation,
-                                                )
-                                            }
+                                if (settings.displaySetting.showAssistantBubble) {
+                                    val content = part.text.replaceRegexes(
+                                        assistant = assistant,
+                                        scope = AssistantAffectScope.ASSISTANT,
+                                        visual = true,
+                                    )
+                                    val splitByParagraph = settings.displaySetting.splitAssistantBubbleByParagraph
+                                    // 拆成多个气泡只影响显示，消息本身还是一条
+                                    val paragraphs = remember(content, splitByParagraph) {
+                                        if (splitByParagraph) {
+                                            splitMarkdownParagraphs(content).ifEmpty { listOf(content) }
                                         } else {
-                                            MarkdownBlock(
-                                                content = segment,
-                                                streaming = streamingText && isLastSegment,
-                                                onClickCitation = handleClickCitation,
-                                                modifier = Modifier
-                                                    .animateContentSize()
-                                            )
+                                            listOf(content)
                                         }
-                                        // 聊天模式：每个拆分气泡下方显示时间戳
-                                        if (isChatMode && timeString != null && !streamingText) {
-                                            Text(
-                                                text = timeString,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                                maxLines = 1,
-                                                modifier = Modifier.padding(start = 4.dp, top = 2.dp),
-                                            )
-                                        }
-                                        } // end inner Column
                                     }
+                                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        paragraphs.fastForEachIndexed { index, paragraph ->
+                                            key(index) {
+                                                ChatMessageBubble(
+                                                    role = role,
+                                                    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = settings.displaySetting.bubbleOpacity),
+                                                    modifier = Modifier.animateContentSize(),
+                                                ) {
+                                                    MarkdownBlock(
+                                                        content = paragraph,
+                                                        streaming = streamingText && index == paragraphs.lastIndex,
+                                                        onClickCitation = handleClickCitation,
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    MarkdownBlock(
+                                        content = part.text.replaceRegexes(
+                                            assistant = assistant,
+                                            scope = AssistantAffectScope.ASSISTANT,
+                                            visual = true,
+                                        ),
+                                        streaming = streamingText,
+                                        onClickCitation = handleClickCitation,
+                                        modifier = Modifier
+                                            .animateContentSize()
+                                    )
                                 }
                             }
                         }
@@ -813,7 +487,6 @@ private fun MessagePartsBlock(
                         SelectableContent {
                             textContent()
                         }
-                        } // end if (part.text.isNotBlank())
                     }
 
                     is UIMessagePart.Video -> {
@@ -908,14 +581,11 @@ private val BubblePressedCorner = 12.dp
  * 消息气泡：大圆角，靠头像一侧的顶角收紧；可点击时按下其余圆角也跟着收紧
  */
 @Composable
-@OptIn(ExperimentalFoundationApi::class)
 private fun ChatMessageBubble(
     role: MessageRole,
     color: Color,
     modifier: Modifier = Modifier,
-    innerPadding: PaddingValues = PaddingValues(horizontal = 10.dp, vertical = 10.dp),
     onClick: (() -> Unit)? = null,
-    onLongClick: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -932,19 +602,14 @@ private fun ChatMessageBubble(
             .clipDrawing(shape)
             .background(color)
             .then(
-                if (onClick != null || onLongClick != null) {
-                    Modifier.combinedClickable(
-                        interactionSource = interactionSource,
-                        indication = ripple(),
-                        onClick = { onClick?.invoke() },
-                        onLongClick = { onLongClick?.invoke() }
-                    )
+                if (onClick != null) {
+                    Modifier.clickable(interactionSource = interactionSource, indication = ripple(), onClick = onClick)
                 } else {
                     Modifier
                 },
             )
             // MarkdownBlock 自带 4dp 的水平内边距
-            .padding(innerPadding),
+            .padding(horizontal = 10.dp, vertical = 10.dp),
     ) {
         CompositionLocalProvider(LocalContentColor provides contentColor) { content() }
     }

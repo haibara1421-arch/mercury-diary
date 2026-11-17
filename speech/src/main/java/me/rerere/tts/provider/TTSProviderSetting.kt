@@ -195,6 +195,7 @@ sealed class TTSProviderSetting {
         val voiceId: String = "JBFqnCBsd6RMkjVDRZzb",
         val stability: Float = 0.5f,
         val similarityBoost: Float = 0.75f,
+        val style: Float = 0.0f,
     ) : TTSProviderSetting() {
         override fun copyProvider(
             id: Uuid,
@@ -298,6 +299,26 @@ sealed class TTSProviderSetting {
             copy(id = id, name = name)
     }
 
+    /**
+     * DeepSeek 语音合成。走 [POST {baseUrl}/v1/tools/tts] 整段合成接口, 不是 OpenAI 兼容格式。
+     * 请求 pcm 格式 (24kHz / 16bit / mono), 由播放器补 WAV 头。不支持语速调节, 语种自动识别。
+     *
+     * 官方文档: https://api-docs.deepseek.com/zh-cn/guides/tts
+     */
+    @Serializable
+    @SerialName("deepseek")
+    data class DeepSeek(
+        override val id: Uuid = Uuid.random(),
+        override val name: String = "DeepSeek TTS",
+        val apiKey: String = "",
+        val baseUrl: String = "https://api.deepseek.com",
+        // stella (女声, 默认) | tide (男声)
+        val voiceId: String = "stella",
+    ) : TTSProviderSetting() {
+        override fun copyProvider(id: Uuid, name: String): TTSProviderSetting =
+            copy(id = id, name = name)
+    }
+
     companion object {
         val Types by lazy {
             listOf(
@@ -313,6 +334,7 @@ sealed class TTSProviderSetting {
                 Step::class,
                 FishAudio::class,
                 Volcengine::class,
+                DeepSeek::class,
             )
         }
     }

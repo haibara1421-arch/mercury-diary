@@ -12,13 +12,18 @@ import kotlinx.coroutines.withContext
 import me.rerere.rikkahub.data.datastore.SettingsStore
 import me.rerere.rikkahub.data.db.dao.WorkspaceDAO
 import me.rerere.rikkahub.data.db.entity.WorkspaceEntity
+import me.rerere.rikkahub.data.model.SshJumpHostDraft
+import me.rerere.rikkahub.data.model.SshJumpHostSettings
 import me.rerere.rikkahub.data.model.SshWorkspaceDraft
 import me.rerere.rikkahub.data.model.SshWorkspaceSettings
+import me.rerere.rikkahub.data.model.WorkspaceStorageMount
+import me.rerere.rikkahub.data.model.normalizeStorageMountPath
 import me.rerere.rikkahub.utils.JsonInstant
 import me.rerere.rikkahub.utils.SecretCipher
 import me.rerere.workspace.RootfsInstallProgress
 import me.rerere.workspace.RootfsInstaller
 import me.rerere.workspace.WorkspaceBackend
+import me.rerere.workspace.WorkspaceBackgroundCommand
 import me.rerere.workspace.WorkspaceCommandResult
 import me.rerere.workspace.WorkspaceFileEntry
 import me.rerere.workspace.WorkspaceLayout
@@ -29,6 +34,7 @@ import me.rerere.workspace.WorkspaceType
 import me.rerere.workspace.ssh.SshAuthType
 import me.rerere.workspace.ssh.SshConnectionConfig
 import me.rerere.workspace.ssh.SshConnectionPool
+import me.rerere.workspace.ssh.SshJumpHostConfig
 import me.rerere.workspace.ssh.SshProbeResult
 import me.rerere.workspace.ssh.SshShell
 import me.rerere.workspace.ssh.SshWorkspaceBackend
@@ -160,6 +166,32 @@ class WorkspaceRepository(
         dao.setShellCompatibilityMode(id, enabled, System.currentTimeMillis())
     }
 
+    /**
+     * 保存共享存储挂载列表, 路径规范化后按路径去重; 只对下次执行的命令和新开的终端生效。
+     * 新加入的路径必须是可访问的目录, 已保存的路径不再校验, 这样 SD 卡拔出后仍能删除或修改其他条目。
+     */
+    suspend fun setStorageMounts(id: String, mounts: List<WorkspaceStorageMount>) {
+        val workspace = dao.getById(id) ?: error("Workspace not found: $id")
+        require(workspace.capabilities().rootfs) { "Storage mounts are only available for local workspaces" }
+        val savedPaths = workspace.storageMountList().mapTo(HashSet()) { it.path }
+        val normalized = mounts
+            .map { it.copy(path = normalizeStorageMountPath(it.path)) }
+            .distinctBy { it.path }
+        withContext(Dispatchers.IO) {
+            normalized.filterNot { it.path in savedPaths }.forEach { mount ->
+                require(File(mount.path).isDirectory) {
+                    "Folder does not exist, or all files access is not granted: ${mount.path}"
+                }
+            }
+        }
+        dao.upsert(
+            workspace.copy(
+                storageMounts = JsonInstant.encodeToString(normalized),
+                updatedAt = System.currentTimeMillis(),
+            )
+        )
+    }
+
     suspend fun setToolApproval(id: String, toolName: String, needsApproval: Boolean): Boolean {
         val workspace = dao.getById(id) ?: return false
         val overrides = workspace.toolApprovalOverrides() + (toolName to needsApproval)
@@ -210,7 +242,7 @@ class WorkspaceRepository(
         if (workspace.isSsh()) {
             workspace.sshSettings()?.let { SshWorkspaceBackend.layoutOf(it.remoteDir) }
         } else {
-            manager.layout
+            manager.layout(workspace.extraBindMounts())
         }
     }
 
@@ -346,6 +378,14 @@ class WorkspaceRepository(
         }
     }
 
+    /** 在后台启动命令并立即返回, 进程的生命周期由调用方管理 */
+    suspend fun startBackgroundCommand(
+        id: String,
+        command: String,
+        cwd: String,
+        taskId: String,
+    ): WorkspaceBackgroundCommand = withBackend(id) { it.startBackgroundCommand(command, cwd, taskId) }
+
     suspend fun delete(id: String): Boolean {
         val workspace = dao.getById(id) ?: return false
         dao.deleteById(id)
@@ -383,7 +423,7 @@ class WorkspaceRepository(
             val settings = workspace.sshSettings() ?: error("SSH workspace config is missing: ${workspace.id}")
             SshWorkspaceBackend(sshPool, workspace.id, settings.toConnectionConfig())
         } else {
-            manager.backend(workspace.root, workspace.shellCompatibilityMode)
+            manager.backend(workspace.root, workspace.shellCompatibilityMode, workspace.extraBindMounts())
         }
 
     private fun SshWorkspaceSettings.toConnectionConfig() = SshConnectionConfig(
@@ -396,19 +436,36 @@ class WorkspaceRepository(
         passphrase = encryptedPassphrase?.let(::decryptSecret),
         remoteDir = remoteDir,
         hostKey = hostKey,
+        jumpHost = jumpHost?.let { jump ->
+            SshJumpHostConfig(
+                host = jump.host,
+                port = jump.port,
+                username = jump.username,
+                authType = jump.authType,
+                password = jump.encryptedPassword?.let(::decryptSecret),
+                privateKey = jump.encryptedPrivateKey?.let(::decryptSecret),
+                passphrase = jump.encryptedPassphrase?.let(::decryptSecret),
+                hostKey = jump.hostKey,
+            )
+        },
     )
 
-    /**
-     * 表单转成持久化配置并加密凭据。编辑时留空的凭据沿用 [previous] 的密文;
-     * 私钥口令跟随私钥: 换了新私钥就以表单为准, 沿用旧私钥时口令留空也沿用。
-     */
+    /** 表单转成持久化配置并加密凭据。编辑时留空的凭据沿用 [previous] 的密文, 规则见 [encryptCredentials] */
     private fun SshWorkspaceDraft.toSettings(previous: SshWorkspaceSettings?): SshWorkspaceSettings {
         val remoteDir = remoteDir.trim().trimEnd('/').ifEmpty { "/" }
         require(remoteDir.startsWith("/")) { "Remote directory must be an absolute path" }
         require(host.isNotBlank()) { "Host is required" }
         require(username.isNotBlank()) { "Username is required" }
         require(port in 1..65535) { "Invalid port: $port" }
-        val keepPrivateKey = privateKey.isBlank()
+        val credentials = encryptCredentials(
+            authType = authType,
+            password = password,
+            privateKey = privateKey,
+            passphrase = passphrase,
+            previous = previous?.let {
+                EncryptedCredentials(it.encryptedPassword, it.encryptedPrivateKey, it.encryptedPassphrase)
+            },
+        )
         return SshWorkspaceSettings(
             host = host.trim(),
             port = port,
@@ -416,21 +473,67 @@ class WorkspaceRepository(
             authType = authType,
             remoteDir = remoteDir,
             hostKey = hostKey,
-            encryptedPassword = if (authType == SshAuthType.PASSWORD) {
-                password.takeIf { it.isNotEmpty() }?.let(SecretCipher::encrypt) ?: previous?.encryptedPassword
+            encryptedPassword = credentials.password,
+            encryptedPrivateKey = credentials.privateKey,
+            encryptedPassphrase = credentials.passphrase,
+            jumpHost = jumpHost?.toSettings(previous?.jumpHost),
+        )
+    }
+
+    private fun SshJumpHostDraft.toSettings(previous: SshJumpHostSettings?): SshJumpHostSettings {
+        require(host.isNotBlank()) { "Jump host is required" }
+        require(username.isNotBlank()) { "Jump host username is required" }
+        require(port in 1..65535) { "Invalid jump host port: $port" }
+        val credentials = encryptCredentials(
+            authType = authType,
+            password = password,
+            privateKey = privateKey,
+            passphrase = passphrase,
+            previous = previous?.let {
+                EncryptedCredentials(it.encryptedPassword, it.encryptedPrivateKey, it.encryptedPassphrase)
+            },
+        )
+        return SshJumpHostSettings(
+            host = host.trim(),
+            port = port,
+            username = username.trim(),
+            authType = authType,
+            hostKey = hostKey,
+            encryptedPassword = credentials.password,
+            encryptedPrivateKey = credentials.privateKey,
+            encryptedPassphrase = credentials.passphrase,
+        )
+    }
+
+    private class EncryptedCredentials(val password: String?, val privateKey: String?, val passphrase: String?)
+
+    /**
+     * 只保留当前认证方式需要的凭据并加密, 留空的沿用 [previous] 的密文;
+     * 私钥口令跟随私钥: 换了新私钥就以表单为准, 沿用旧私钥时口令留空也沿用。
+     */
+    private fun encryptCredentials(
+        authType: SshAuthType,
+        password: String,
+        privateKey: String,
+        passphrase: String,
+        previous: EncryptedCredentials?,
+    ): EncryptedCredentials {
+        val keepPrivateKey = privateKey.isBlank()
+        return EncryptedCredentials(
+            password = if (authType == SshAuthType.PASSWORD) {
+                password.takeIf { it.isNotEmpty() }?.let(SecretCipher::encrypt) ?: previous?.password
             } else {
                 null
             },
-            encryptedPrivateKey = if (authType == SshAuthType.PRIVATE_KEY) {
-                privateKey.takeIf { it.isNotBlank() }?.let { SecretCipher.encrypt(it.trim()) }
-                    ?: previous?.encryptedPrivateKey
+            privateKey = if (authType == SshAuthType.PRIVATE_KEY) {
+                privateKey.takeIf { it.isNotBlank() }?.let { SecretCipher.encrypt(it.trim()) } ?: previous?.privateKey
             } else {
                 null
             },
-            encryptedPassphrase = when {
+            passphrase = when {
                 authType != SshAuthType.PRIVATE_KEY -> null
                 passphrase.isNotEmpty() -> SecretCipher.encrypt(passphrase)
-                keepPrivateKey -> previous?.encryptedPassphrase
+                keepPrivateKey -> previous?.passphrase
                 else -> null
             },
         )

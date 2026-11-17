@@ -32,7 +32,6 @@ data class Settings(
     val init: Boolean = false,
     val dynamicColor: Boolean = true,
     val themeId: String = PresetThemes[0].id,
-    val userBubbleVariant: String = "B",  // "A" = 雾粉白, "B" = 轻雾灰粉
     val customThemes: List<CustomTheme> = emptyList(),
     val developerMode: Boolean = false,
     val displaySetting: DisplaySetting = DisplaySetting(),
@@ -54,6 +53,9 @@ data class Settings(
     val translateTargetLanguage: String = "zh-CN",
     val enableSuggestion: Boolean = true,
     val suggestionPrompt: String = DEFAULT_SUGGESTION_PROMPT,
+    // 回复结束后上下文占用达到聊天模型上下文窗口的 autoCompressThreshold 时自动压缩历史
+    val enableAutoCompress: Boolean = true,
+    val autoCompressThreshold: Float = 0.8f,
     val ocrModelId: Uuid = Uuid.random(),
     val ocrPrompt: String = DEFAULT_OCR_PROMPT,
     val assistantId: Uuid = DEFAULT_ASSISTANT_ID,
@@ -139,11 +141,7 @@ data class DisplaySetting(
     val userNickname: String = "",
     val showUserAvatar: Boolean = true,
     val showAssistantBubble: Boolean = false,
-    val enableBubbleSplit: Boolean = false,
-    val hideActionButtons: Boolean = false,
-    val simpleTopBar: Boolean = false,
-    val simpleInputBar: Boolean = false,
-    val immersiveChatMode: Boolean = false,
+    val splitAssistantBubbleByParagraph: Boolean = false,
     val bubbleOpacity: Float = 1.0f,
     val showModelIcon: Boolean = true,
     val showModelName: Boolean = true,
@@ -179,10 +177,6 @@ data class DisplaySetting(
     val chatCustomFontPath: String = "",
     val chatCustomFontName: String = "",
     val enableVolumeKeyScroll: Boolean = false,
-    val immersiveAutoReplyDelay: Int = 5, // 沉浸模式自动回复等待秒数，0=关闭自动回复
-    val hideConversationTitle: Boolean = false, // 隐藏对话标题
-    val hideModelInfo: Boolean = false, // 隐藏模型信息（角色名/模型名/中转站）
-    val centerAssistantName: Boolean = false, // 角色名居中显示
     val volumeKeyScrollRatio: Float = 1.0f,
     val conversationSortOrder: ConversationSortOrder = ConversationSortOrder.UPDATE_TIME,
 )

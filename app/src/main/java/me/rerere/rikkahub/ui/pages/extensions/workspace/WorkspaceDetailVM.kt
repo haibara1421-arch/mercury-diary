@@ -17,7 +17,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.rerere.rikkahub.data.db.entity.WorkspaceEntity
+import me.rerere.rikkahub.data.model.WorkspaceStorageMount
 import me.rerere.rikkahub.data.repository.WorkspaceRepository
+import me.rerere.rikkahub.service.BackgroundShellManager
 import me.rerere.workspace.RootfsInstallProgress
 import me.rerere.workspace.RootfsInstallStage
 import me.rerere.workspace.WorkspaceCommandResult
@@ -31,6 +33,7 @@ class WorkspaceDetailVM(
     private val id: String,
     private val repository: WorkspaceRepository,
     private val terminalSessionManager: WorkspaceTerminalSessionManager,
+    private val backgroundShellManager: BackgroundShellManager,
 ) : ViewModel() {
     private val _state = MutableStateFlow(WorkspaceDetailState())
     val state = _state.asStateFlow()
@@ -285,6 +288,20 @@ class WorkspaceDetailVM(
         }
     }
 
+    fun setStorageMounts(mounts: List<WorkspaceStorageMount>) {
+        viewModelScope.launch {
+            try {
+                repository.setStorageMounts(id, mounts)
+                val workspace = repository.getById(id)
+                _state.update { it.copy(workspace = workspace) }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                _settingsError.value = error.message.orEmpty()
+            }
+        }
+    }
+
     fun setToolApproval(toolName: String, needsApproval: Boolean) {
         viewModelScope.launch {
             val workspace = state.value.workspace ?: return@launch
@@ -300,6 +317,7 @@ class WorkspaceDetailVM(
             _installProgress.value = RootfsInstallProgress(stage = RootfsInstallStage.DOWNLOADING)
             try {
                 terminalSessionManager.closeWorkspace(workspace.root)
+                backgroundShellManager.killWorkspace(workspace.id)
                 repository.installRootfs(workspace.id, url) { progress ->
                     _installProgress.value = progress
                 }

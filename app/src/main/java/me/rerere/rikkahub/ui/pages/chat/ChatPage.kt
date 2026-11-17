@@ -5,25 +5,24 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuGroup
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.DropdownMenuPopup
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.OutlinedTextField
@@ -40,25 +39,27 @@ import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import me.rerere.ui.components.RikkaConfirmDialog
 import me.rerere.ui.toast.ToastType
+import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.Job
@@ -68,25 +69,12 @@ import me.rerere.ai.provider.Model
 import me.rerere.ai.provider.ProviderSetting
 import me.rerere.ai.ui.UIMessagePart
 import me.rerere.hugeicons.HugeIcons
-import me.rerere.hugeicons.stroke.Cancel01
+import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.hugeicons.stroke.LeftToRightListBullet
 import me.rerere.hugeicons.stroke.Menu03
-import me.rerere.hugeicons.stroke.MoreVertical
-import me.rerere.hugeicons.stroke.View
-import me.rerere.hugeicons.stroke.ViewOff
-import kotlin.math.roundToInt
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.clickable
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Slider
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.ExperimentalMaterial3Api
-import me.rerere.rikkahub.data.datastore.DisplaySetting
-import me.rerere.hugeicons.stroke.PaintBoard
-import me.rerere.hugeicons.stroke.Search01
 import me.rerere.hugeicons.stroke.MessageAdd01
+import me.rerere.hugeicons.stroke.MoreVertical
+import me.rerere.hugeicons.stroke.Share04
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.data.datastore.findProvider
@@ -95,10 +83,13 @@ import me.rerere.rikkahub.data.files.FilesManager
 import me.rerere.rikkahub.data.model.Assistant
 import me.rerere.rikkahub.data.model.Conversation
 import me.rerere.rikkahub.data.repository.WorkspaceRepository
+import me.rerere.rikkahub.service.BackgroundShellStatus
 import me.rerere.rikkahub.service.ChatError
+import me.rerere.rikkahub.service.SessionActivity
+import me.rerere.rikkahub.ui.components.ai.BackgroundTasksSheet
 import me.rerere.rikkahub.ui.components.ai.ChatAttachmentPickerActions
-import me.rerere.rikkahub.ui.components.icons.MercuryIcons
 import me.rerere.rikkahub.ui.components.ai.ChatInput
+import me.rerere.rikkahub.ui.components.ai.ChatTopBarCapsule
 import me.rerere.rikkahub.ui.components.ai.FilesPicker
 import me.rerere.rikkahub.ui.components.ai.SearchMode
 import me.rerere.rikkahub.ui.components.ai.completion.WorkspaceCompletionProvider
@@ -107,8 +98,6 @@ import me.rerere.rikkahub.ui.context.LocalNavController
 import me.rerere.rikkahub.ui.context.LocalToaster
 import me.rerere.rikkahub.ui.context.Navigator
 import me.rerere.rikkahub.ui.hooks.ChatInputState
-import me.rerere.rikkahub.ui.theme.LocalChatColorScheme
-import me.rerere.rikkahub.ui.theme.findChatColorPreset
 import me.rerere.rikkahub.ui.hooks.EditStateContent
 import me.rerere.rikkahub.ui.hooks.useEditState
 import me.rerere.rikkahub.utils.base64Decode
@@ -118,8 +107,6 @@ import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.uuid.Uuid
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.KeyboardType
 
 @Composable
 fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null) {
@@ -318,10 +305,11 @@ private fun ChatPageContent(
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
     val workspaceRepository: WorkspaceRepository = koinInject()
+    val sessionActivity by vm.sessionActivity.collectAsStateWithLifecycle()
 
     var previewMode by rememberSaveable { mutableStateOf(false) }
-    var showBeautySheet by rememberSaveable { mutableStateOf(false) }
-    var showToolboxSheet by remember { mutableStateOf(false) }
+    val selectionState = rememberChatSelectionState()
+    var showDeleteConfirm by remember { mutableStateOf(false) }
     val hazeState = rememberHazeState()
     var showFilesSheet by remember { mutableStateOf(false) }
     val attachmentPickerActions = rememberChatAttachmentPickerActions(
@@ -344,18 +332,21 @@ private fun ChatPageContent(
         }.orEmpty()
     }
 
+    // 列表滚到标题栏下面时才显示胶囊背景，空页面或在顶部时按钮直接浮在背景上
+    // 概览页有自己的列表，切过去后跟着它判断
+    val previewListState = rememberLazyListState()
+    val listScrolledUnderTopBar by remember(chatListState, previewListState) {
+        derivedStateOf {
+            if (previewMode) previewListState.canScrollBackward else chatListState.canScrollBackward
+        }
+    }
+
     TTSAutoPlay(vm = vm, setting = setting, conversation = conversation)
 
-    // 助手级别聊天配色覆盖
-    val assistantChatColors = remember(assistant.chatColorThemeId, setting.userBubbleVariant) {
-        findChatColorPreset(assistant.chatColorThemeId)
-            ?.builder?.invoke(setting.userBubbleVariant)
+    BackHandler(previewMode) {
+        previewMode = false
     }
-    val chatColorSchemeOverride = assistantChatColors ?: LocalChatColorScheme.current
 
-    CompositionLocalProvider(
-        LocalChatColorScheme provides chatColorSchemeOverride,
-    ) {
     Surface(
         color = MaterialTheme.colorScheme.background,
         modifier = Modifier.fillMaxSize()
@@ -370,32 +361,40 @@ private fun ChatPageContent(
                     conversation = conversation,
                     bigScreen = bigScreen,
                     drawerState = drawerState,
-                    previewMode = previewMode,
+                    hazeState = hazeState,
+                    showCapsuleBackground = listScrolledUnderTopBar,
                     onNewChat = {
                         navigateToChatPage(navController)
                     },
-                    onClickMenu = {
-                        previewMode = !previewMode
+                    onShowOverview = {
+                        selectionState.selecting = false
+                        previewMode = true
+                    },
+                    onExport = {
+                        // 跟消息上的分享一样进入多选，默认全选，用户可以再挑
+                        previewMode = false
+                        selectionState.start(conversation.messageNodes.map { it.id })
+                    },
+                    onDelete = {
+                        showDeleteConfirm = true
                     },
                     onUpdateTitle = {
                         vm.updateTitle(it)
-                    },
-                    onToggleImmersive = {
-                        vm.updateSettings { s ->
-                            s.copy(displaySetting = s.displaySetting.copy(immersiveChatMode = !s.displaySetting.immersiveChatMode))
-                        }
-                    },
-                    onShowBeautySettings = {
-                        showBeautySheet = true
-                    },
-                    onShowToolbox = {
-                        showToolboxSheet = true
                     }
                 )
             },
             bottomBar = {
                 val messageQueue by vm.messageQueue.collectAsStateWithLifecycle()
                 val voiceState by vm.voiceSession.state.collectAsStateWithLifecycle()
+                val backgroundTasks by vm.backgroundTasks.collectAsStateWithLifecycle()
+                var showBackgroundTasks by remember { mutableStateOf(false) }
+                if (showBackgroundTasks) {
+                    BackgroundTasksSheet(
+                        tasks = backgroundTasks,
+                        onStop = vm::stopBackgroundTask,
+                        onDismiss = { showBackgroundTasks = false },
+                    )
+                }
                 ChatInput(
                     onStartVoiceMode = onStartVoiceMode,
                     voiceState = voiceState,
@@ -406,7 +405,8 @@ private fun ChatPageContent(
                     onBeginEditQueuedMessage = vm::beginEditQueuedMessage,
                     onFinishEditQueuedMessage = vm::finishEditQueuedMessage,
                     onResumeMessageQueue = vm::resumeMessageQueue,
-                    onTriggerAIReply = vm::triggerAIReply,
+                    runningBackgroundTasks = backgroundTasks.count { it.status == BackgroundShellStatus.RUNNING },
+                    onShowBackgroundTasks = { showBackgroundTasks = true },
                     loading = loadingJob != null,
                     settings = setting,
                     assistant = assistant,
@@ -458,39 +458,17 @@ private fun ChatPageContent(
             },
             containerColor = Color.Transparent,
         ) { innerPadding ->
-            // Beauty Settings BottomSheet
-            if (showBeautySheet) {
-                BeautySettingsSheet(
-                    displaySetting = setting.displaySetting,
-                    onUpdateDisplaySetting = { ds ->
-                        vm.updateSettings { it.copy(displaySetting = ds) }
-                    },
-                    userBubbleVariant = setting.userBubbleVariant,
-                    onUpdateUserBubbleVariant = { v ->
-                        vm.updateSettings { it.copy(userBubbleVariant = v) }
-                    },
-                    showBubbleVariant = setting.themeId == "warm_home",
-                    onDismiss = { showBeautySheet = false }
-                )
-            }
-            // Toolbox BottomSheet
-            if (showToolboxSheet) {
-                ToolboxSheet(
-                    setting = setting,
-                    conversation = conversation,
-                    assistant = assistant,
-                    chatModel = currentChatModel,
-                    vm = vm,
-                    onDismiss = { showToolboxSheet = false }
-                )
-            }
             ChatList(
                 innerPadding = innerPadding,
                 conversation = conversation,
                 state = chatListState,
+                previewListState = previewListState,
+                selectionState = selectionState,
                 loading = loadingJob != null,
+                compressing = sessionActivity == SessionActivity.Compressing,
                 processingStatus = processingStatus,
                 previewMode = previewMode,
+                onPreviewModeChange = { previewMode = it },
                 settings = setting,
                 hazeState = hazeState,
                 errors = errors,
@@ -550,6 +528,22 @@ private fun ChatPageContent(
             )
         }
 
+        RikkaConfirmDialog(
+            show = showDeleteConfirm,
+            title = stringResource(R.string.confirm_delete),
+            confirmText = stringResource(R.string.delete),
+            dismissText = stringResource(R.string.cancel),
+            onConfirm = {
+                showDeleteConfirm = false
+                scope.launch {
+                    vm.deleteConversation(conversation).join()
+                    navigateToChatPage(navController)
+                }
+            },
+            onDismiss = { showDeleteConfirm = false },
+            text = { Text(stringResource(R.string.chat_page_delete_conversation_confirm)) },
+        )
+
         if (showFilesSheet) {
             ChatFilesPickerSheet(
                 inputState = inputState,
@@ -564,7 +558,6 @@ private fun ChatPageContent(
             )
         }
     }
-    } // end CompositionLocalProvider (chatColorSchemeOverride)
 }
 
 @Composable
@@ -647,13 +640,13 @@ private fun TopBar(
     conversation: Conversation,
     drawerState: DrawerState,
     bigScreen: Boolean,
-    previewMode: Boolean,
-    onClickMenu: () -> Unit,
+    hazeState: HazeState,
+    showCapsuleBackground: Boolean,
     onNewChat: () -> Unit,
-    onUpdateTitle: (String) -> Unit,
-    onToggleImmersive: () -> Unit = {},
-    onShowBeautySettings: () -> Unit = {},
-    onShowToolbox: () -> Unit = {},
+    onShowOverview: () -> Unit,
+    onExport: () -> Unit,
+    onDelete: () -> Unit,
+    onUpdateTitle: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
@@ -665,113 +658,76 @@ private fun TopBar(
         colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
         navigationIcon = {
             if (!bigScreen) {
-                IconButton(
-                    onClick = {
-                        scope.launch { drawerState.open() }
-                    }
+                ChatTopBarCapsule(
+                    hazeState = hazeState,
+                    displaySetting = settings.displaySetting,
+                    showBackground = showCapsuleBackground,
+                    modifier = Modifier.padding(start = 8.dp, end = 4.dp),
                 ) {
-                    Icon(HugeIcons.Menu03, "Messages")
+                    IconButton(
+                        onClick = {
+                            scope.launch { drawerState.open() }
+                        }
+                    ) {
+                        Icon(HugeIcons.Menu03, "Messages")
+                    }
                 }
             }
         },
         title = {
-            val ds = settings.displaySetting
             val editTitleWarning = stringResource(R.string.chat_page_edit_title_warning)
-            val contentAlignment = if (ds.centerAssistantName) Alignment.Center else Alignment.CenterStart
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = contentAlignment,
+            Surface(
+                onClick = {
+                    if (conversation.messageNodes.isNotEmpty()) {
+                        titleState.open(conversation.title)
+                    } else {
+                        toaster.show(editTitleWarning, type = ToastType.Warning)
+                    }
+                },
+                color = Color.Transparent,
             ) {
-                Surface(
-                    onClick = {
-                        if (conversation.messageNodes.isNotEmpty()) {
-                            titleState.open(conversation.title)
-                        } else {
-                            toaster.show(editTitleWarning, type = ToastType.Warning)
-                        }
-                    },
-                    color = Color.Transparent,
-                ) {
-                    Column {
-                        val provider = chatModel?.findProvider(providers = settings.providers, checkOverwrite = false)
-                        if (!ds.hideConversationTitle) {
-                            Text(
-                                text = conversation.title.ifBlank { stringResource(R.string.chat_page_new_chat) },
-                                maxLines = 1,
-                                style = MaterialTheme.typography.bodyMedium,
-                                overflow = TextOverflow.Ellipsis,
+                Column {
+                    val provider = chatModel?.findProvider(providers = settings.providers, checkOverwrite = false)
+                    Text(
+                        text = conversation.title.ifBlank { stringResource(R.string.chat_page_new_chat) },
+                        maxLines = 1,
+                        style = MaterialTheme.typography.bodyMedium,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (chatModel != null && provider != null) {
+                        Text(
+                            text = "${assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) }} / ${chatModel.displayName} (${provider.name})",
+                            overflow = TextOverflow.Ellipsis,
+                            maxLines = 1,
+                            color = LocalContentColor.current.copy(0.65f),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 8.sp,
                             )
-                        }
-                        if (!ds.hideModelInfo && chatModel != null && provider != null) {
-                            Text(
-                                text = "${assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) }} / ${chatModel.displayName} (${provider.name})",
-                                overflow = TextOverflow.Ellipsis,
-                                maxLines = 1,
-                                color = LocalContentColor.current.copy(0.65f),
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 8.sp,
-                                )
-                            )
-                        }
-                        // 标题和模型信息都隐藏时，至少显示角色名
-                        if (ds.hideConversationTitle && ds.hideModelInfo) {
-                            Text(
-                                text = assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) },
-                                maxLines = 1,
-                                style = MaterialTheme.typography.titleMedium,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
+                        )
                     }
                 }
             }
         },
         actions = {
-            // 工具箱按钮
-            IconButton(onClick = onShowToolbox) {
-                Icon(MercuryIcons.Toolbox, "Toolbox")
-            }
-            // ⋮ 菜单
-            var showMenu by remember { mutableStateOf(false) }
-            Box {
-                IconButton(onClick = { showMenu = true }) {
-                    Icon(HugeIcons.MoreVertical, "Menu")
-                }
-                DropdownMenu(
-                    expanded = showMenu,
-                    onDismissRequest = { showMenu = false }
+            ChatTopBarCapsule(
+                hazeState = hazeState,
+                displaySetting = settings.displaySetting,
+                showBackground = showCapsuleBackground,
+                modifier = Modifier.padding(start = 4.dp, end = 8.dp),
+            ) {
+                IconButton(
+                    onClick = {
+                        onNewChat()
+                    }
                 ) {
-                    DropdownMenuItem(
-                        text = { Text(if (previewMode) "关闭查找" else "查找聊天记录") },
-                        onClick = {
-                            showMenu = false
-                            onClickMenu()
-                        },
-                        leadingIcon = {
-                            Icon(if (previewMode) HugeIcons.Cancel01 else HugeIcons.Search01, null)
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.chat_page_new_chat)) },
-                        onClick = {
-                            showMenu = false
-                            onNewChat()
-                        },
-                        leadingIcon = {
-                            Icon(HugeIcons.MessageAdd01, null)
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("美化设置") },
-                        onClick = {
-                            showMenu = false
-                            onShowBeautySettings()
-                        },
-                        leadingIcon = {
-                            Icon(HugeIcons.PaintBoard, null)
-                        }
-                    )
+                    Icon(HugeIcons.MessageAdd01, "New Message")
                 }
+                ChatPageMenu(
+                    enabled = conversation.messageNodes.isNotEmpty(),
+                    onShowOverview = onShowOverview,
+                    onExport = onExport,
+                    onDelete = onDelete,
+                )
             }
         },
     )
@@ -813,297 +769,78 @@ private fun TopBar(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+// 顶栏右侧的会话菜单；空对话没有内容可概览、导出或删除，菜单项全部置灰
 @Composable
-private fun BeautySettingsSheet(
-    displaySetting: DisplaySetting,
-    onUpdateDisplaySetting: (DisplaySetting) -> Unit,
-    userBubbleVariant: String = "B",
-    onUpdateUserBubbleVariant: (String) -> Unit = {},
-    showBubbleVariant: Boolean = false,
-    onDismiss: () -> Unit,
+private fun ChatPageMenu(
+    enabled: Boolean,
+    onShowOverview: () -> Unit,
+    onExport: () -> Unit,
+    onDelete: () -> Unit,
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var expanded by remember { mutableStateOf(false) }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
+    @Composable
+    fun MenuItem(
+        text: String,
+        icon: ImageVector,
+        index: Int,
+        count: Int,
+        destructive: Boolean = false,
+        onClick: () -> Unit,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+        DropdownMenuItem(
+            text = { Text(text) },
+            onClick = {
+                expanded = false
+                onClick()
+            },
+            shape = MenuDefaults.itemShape(index = index, count = count).shape,
+            leadingIcon = { Icon(icon, contentDescription = null) },
+            enabled = enabled,
+            colors = if (destructive) {
+                val errorColor = MaterialTheme.colorScheme.error
+                MenuDefaults.itemColors(textColor = errorColor, leadingIconColor = errorColor)
+            } else {
+                MenuDefaults.itemColors()
+            },
+        )
+    }
+
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(HugeIcons.MoreVertical, stringResource(R.string.more_options))
+        }
+        DropdownMenuPopup(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
         ) {
-            Text(
-                text = "美化设置",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
-            )
-
-            // --- 顶栏 ---
-            Text(
-                text = "顶栏",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            )
-
-            BeautySwitch(
-                title = "隐藏对话标题",
-                subtitle = "隐藏顶栏的对话标题",
-                checked = displaySetting.hideConversationTitle,
-                onCheckedChange = { onUpdateDisplaySetting(displaySetting.copy(hideConversationTitle = it)) },
-            )
-
-            BeautySwitch(
-                title = "隐藏模型信息",
-                subtitle = "隐藏顶栏的角色名和模型信息",
-                checked = displaySetting.hideModelInfo,
-                onCheckedChange = { onUpdateDisplaySetting(displaySetting.copy(hideModelInfo = it)) },
-            )
-
-            BeautySwitch(
-                title = "角色名居中",
-                subtitle = "顶栏角色名居中显示",
-                checked = displaySetting.centerAssistantName,
-                onCheckedChange = { onUpdateDisplaySetting(displaySetting.copy(centerAssistantName = it)) },
-            )
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-            // --- 消息 ---
-            Text(
-                text = "消息",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            )
-
-            // 显示用户头像
-            BeautySwitch(
-                title = "显示用户头像",
-                subtitle = "是否在聊天消息中显示用户头像",
-                checked = displaySetting.showUserAvatar,
-                onCheckedChange = { onUpdateDisplaySetting(displaySetting.copy(showUserAvatar = it)) },
-            )
-
-            // 显示助手消息气泡
-            BeautySwitch(
-                title = "显示助手消息气泡",
-                subtitle = "是否为助手消息显示气泡背景",
-                checked = displaySetting.showAssistantBubble,
-                onCheckedChange = { onUpdateDisplaySetting(displaySetting.copy(showAssistantBubble = it)) },
-            )
-
-            // 气泡不透明度
-            ListItem(
-                headlineContent = { Text("气泡不透明度") },
-                trailingContent = { Text("${(displaySetting.bubbleOpacity * 100).roundToInt()}%") },
-                supportingContent = {
-                    Slider(
-                        value = displaySetting.bubbleOpacity,
-                        onValueChange = { onUpdateDisplaySetting(displaySetting.copy(bubbleOpacity = it)) },
-                        valueRange = 0.1f..1.0f,
-                        steps = 8,
-                    )
-                },
-            )
-
-            // 用户气泡配色切换（仅暖屋主题显示）
-            if (showBubbleVariant) {
-                ListItem(
-                    headlineContent = { Text("用户气泡配色") },
-                    supportingContent = { Text(if (userBubbleVariant == "A") "A · 雾粉白" else "B · 轻雾灰粉") },
-                    trailingContent = {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            FilterChip(
-                                selected = userBubbleVariant == "A",
-                                onClick = { onUpdateUserBubbleVariant("A") },
-                                label = { Text("A") },
-                            )
-                            FilterChip(
-                                selected = userBubbleVariant == "B",
-                                onClick = { onUpdateUserBubbleVariant("B") },
-                                label = { Text("B") },
-                            )
-                        }
-                    },
+            DropdownMenuGroup(shapes = MenuDefaults.groupShape(index = 0, count = 2)) {
+                MenuItem(
+                    text = stringResource(R.string.chat_page_conversation_map),
+                    icon = HugeIcons.LeftToRightListBullet,
+                    index = 0,
+                    count = 2,
+                    onClick = onShowOverview,
+                )
+                MenuItem(
+                    text = stringResource(R.string.export_title),
+                    icon = HugeIcons.Share04,
+                    index = 1,
+                    count = 2,
+                    onClick = onExport,
                 )
             }
-
-            // 显示模型图标
-            BeautySwitch(
-                title = "聊天列表模型图标",
-                subtitle = "是否在聊天列表消息中显示模型图标",
-                checked = displaySetting.showModelIcon,
-                onCheckedChange = { onUpdateDisplaySetting(displaySetting.copy(showModelIcon = it)) },
-            )
-
-            // 显示模型名称
-            BeautySwitch(
-                title = "显示模型名称",
-                subtitle = "是否在聊天消息中显示模型名称",
-                checked = displaySetting.showModelName,
-                onCheckedChange = { onUpdateDisplaySetting(displaySetting.copy(showModelName = it)) },
-            )
-
-            // 在消息中显示日期和时间
-            BeautySwitch(
-                title = "在消息中显示日期和时间",
-                subtitle = "在每条消息下方显示发送时间",
-                checked = displaySetting.showDateTimeInMessage,
-                onCheckedChange = { onUpdateDisplaySetting(displaySetting.copy(showDateTimeInMessage = it)) },
-            )
-
-            // 显示Token使用量
-            BeautySwitch(
-                title = "显示Token使用量",
-                subtitle = "在助手消息下方显示Token消耗",
-                checked = displaySetting.showTokenUsage,
-                onCheckedChange = { onUpdateDisplaySetting(displaySetting.copy(showTokenUsage = it)) },
-            )
-
-            // 显示思考内容
-            BeautySwitch(
-                title = "显示思考内容",
-                subtitle = "是否显示模型的思考过程",
-                checked = displaySetting.showThinkingContent,
-                onCheckedChange = { onUpdateDisplaySetting(displaySetting.copy(showThinkingContent = it)) },
-            )
-
-            // 自动折叠思考内容
-            BeautySwitch(
-                title = "自动折叠思考内容",
-                subtitle = "生成完毕后自动折叠思考内容",
-                checked = displaySetting.autoCloseThinking,
-                onCheckedChange = { onUpdateDisplaySetting(displaySetting.copy(autoCloseThinking = it)) },
-            )
-
-            // 自动回复
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-            Text(
-                text = "自动回复",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            )
-
-            // 自动回复开关
-            BeautySwitch(
-                title = "自动回复",
-                subtitle = "发送消息后自动触发AI回复",
-                checked = displaySetting.immersiveAutoReplyDelay > 0,
-                onCheckedChange = {
-                    onUpdateDisplaySetting(displaySetting.copy(
-                        immersiveAutoReplyDelay = if (it) 5 else 0
-                    ))
-                },
-            )
-
-            // 等待秒数输入
-            if (displaySetting.immersiveAutoReplyDelay > 0) {
-                var delayText by remember(displaySetting.immersiveAutoReplyDelay) {
-                    mutableStateOf(displaySetting.immersiveAutoReplyDelay.toString())
-                }
-                ListItem(
-                    headlineContent = { Text("等待秒数") },
-                    supportingContent = { Text("发送消息后等待多少秒再触发回复") },
-                    trailingContent = {
-                        OutlinedTextField(
-                            value = delayText,
-                            onValueChange = { value ->
-                                delayText = value
-                                val num = value.toIntOrNull()
-                                if (num != null && num in 1..60) {
-                                    onUpdateDisplaySetting(displaySetting.copy(immersiveAutoReplyDelay = num))
-                                }
-                            },
-                            modifier = Modifier.width(64.dp),
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        )
-                    },
+            Spacer(Modifier.height(MenuDefaults.GroupSpacing))
+            DropdownMenuGroup(shapes = MenuDefaults.groupShape(index = 1, count = 2)) {
+                MenuItem(
+                    text = stringResource(R.string.delete),
+                    icon = HugeIcons.Delete01,
+                    index = 0,
+                    count = 1,
+                    destructive = true,
+                    onClick = onDelete,
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun BeautySwitch(
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-) {
-    ListItem(
-        headlineContent = { Text(title) },
-        supportingContent = { Text(subtitle) },
-        trailingContent = {
-            Switch(checked = checked, onCheckedChange = onCheckedChange)
-        },
-        modifier = Modifier.clickable { onCheckedChange(!checked) },
-    )
-}
-
-/**
- * 工具箱 BottomSheet
- * 暂时复用 FilesPicker 完整面板，后续拆分为只包含非聊天功能
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ToolboxSheet(
-    setting: Settings,
-    conversation: Conversation,
-    assistant: Assistant,
-    chatModel: Model?,
-    vm: ChatVM,
-    onDismiss: () -> Unit,
-) {
-    var showCompressDialog by remember { mutableStateOf(false) }
-
-    fun dismissAll() {
-        showCompressDialog = false
-        onDismiss()
-    }
-
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(
-        onDismissRequest = { dismissAll() },
-        sheetState = sheetState,
-    ) {
-        FilesPicker(
-            conversation = conversation,
-            state = vm.inputState,
-            assistant = assistant,
-            chatModel = chatModel,
-            mcpManager = vm.mcpManager,
-            onCompressContext = vm::handleCompressContext,
-            onUpdateAssistant = vm::updateAssistant,
-            onUpdateWorkspaceCwd = vm::updateWorkspaceCwd,
-            onUpdateSearchMode = { mode ->
-                vm.updateSearch(
-                    enableWebSearch = mode == SearchMode.LOCAL,
-                    builtInSearch = mode == SearchMode.BUILT_IN,
-                )
-            },
-            onUpdateSearchService = { index ->
-                vm.updateSettings { it.copy(searchServiceSelected = index) }
-            },
-            showCompressDialog = showCompressDialog,
-            onShowCompressDialogChange = { showCompressDialog = it },
-            onDismiss = { dismissAll() },
-            onTakePic = {},
-            onPickImage = {},
-            onPickVideo = {},
-            onPickAudio = {},
-            onPickFile = {},
-            onSketch = {},
-            onStartVoiceMode = null,
-        )
     }
 }

@@ -100,6 +100,7 @@ import me.rerere.hugeicons.stroke.Folder01
 import me.rerere.hugeicons.stroke.FolderOpen
 import me.rerere.hugeicons.stroke.PencilEdit01
 import me.rerere.hugeicons.stroke.Refresh01
+import me.rerere.hugeicons.stroke.Route01
 import me.rerere.hugeicons.stroke.Settings03
 import me.rerere.hugeicons.stroke.Share08
 import me.rerere.hugeicons.stroke.Tag01
@@ -109,6 +110,7 @@ import me.rerere.rikkahub.Screen
 import me.rerere.rikkahub.data.ai.tools.WorkspaceFileWriteToolNames
 import me.rerere.rikkahub.data.ai.tools.resolveWorkspaceToolApproval
 import me.rerere.rikkahub.data.db.entity.WorkspaceEntity
+import me.rerere.rikkahub.data.model.WorkspaceStorageMount
 import androidx.compose.ui.res.stringResource
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.ui.components.ai.ExtensionEmptyState
@@ -255,6 +257,7 @@ fun WorkspaceDetailPage(id: String) {
                         onInstallRootfs = { showInstallDialog = true },
                         onToolApprovalChange = vm::setToolApproval,
                         onShellCompatibilityModeChange = vm::setShellCompatibilityMode,
+                        onStorageMountsChange = vm::setStorageMounts,
                         onEditSsh = { navController.navigate(Screen.WorkspaceSshEditor(id)) },
                     )
 
@@ -414,6 +417,7 @@ private fun WorkspaceBasicPage(
     onInstallRootfs: () -> Unit,
     onToolApprovalChange: (String, Boolean) -> Unit,
     onShellCompatibilityModeChange: (Boolean) -> Unit,
+    onStorageMountsChange: (List<WorkspaceStorageMount>) -> Unit,
     onEditSsh: () -> Unit,
 ) {
     val shellStatus = workspace?.shellStatus
@@ -495,6 +499,12 @@ private fun WorkspaceBasicPage(
                     )
                 }
             }
+            item {
+                WorkspaceStorageMountCard(
+                    workspace = workspace,
+                    onMountsChange = onStorageMountsChange,
+                )
+            }
         }
 
         item {
@@ -520,6 +530,13 @@ private fun SshConnectionCard(
                 Text(settings?.let { "${it.username}@${it.host}:${it.port}" } ?: stringResource(R.string.workspace_detail_ssh_config_missing))
             },
         )
+        settings?.jumpHost?.let { jump ->
+            item(
+                leadingContent = { CardGroupIcon(HugeIcons.Route01) },
+                headlineContent = { Text(stringResource(R.string.workspace_ssh_editor_jump_host)) },
+                supportingContent = { Text("${jump.username}@${jump.host}:${jump.port}") },
+            )
+        }
         item(
             leadingContent = { CardGroupIcon(HugeIcons.Folder01) },
             headlineContent = { Text(stringResource(R.string.workspace_detail_ssh_remote_dir)) },

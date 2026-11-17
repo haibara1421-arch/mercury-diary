@@ -35,6 +35,7 @@ class ElevenLabsTTSProvider : TTSProvider<TTSProviderSetting.ElevenLabs> {
             put("voice_settings", JSONObject().apply {
                 put("stability", providerSetting.stability.toDouble())
                 put("similarity_boost", providerSetting.similarityBoost.toDouble())
+                put("style", providerSetting.style.toDouble())
             })
         }
 

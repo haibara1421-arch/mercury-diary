@@ -26,8 +26,8 @@ android {
         applicationId = "cc.ccwu.mercurydiary"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -38,13 +38,7 @@ android {
 
     splits {
         abi {
-            // AppBundle tasks usually contain "bundle" in their name
-            //noinspection WrongGradleMethod
-            val isBuildingBundle = gradle.startParameter.taskNames.any { it.lowercase().contains("bundle") }
             isEnable = false
-            reset()
-            include("arm64-v8a")
-            isUniversalApk = false
         }
     }
 

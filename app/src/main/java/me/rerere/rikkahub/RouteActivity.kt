@@ -11,7 +11,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SharedTransitionLayout
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -19,7 +18,6 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,15 +32,10 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.dp
@@ -65,7 +58,6 @@ import coil3.request.crossfade
 import coil3.svg.SvgDecoder
 import me.rerere.ui.toast.Toaster
 import me.rerere.ui.toast.rememberToasterState
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import me.rerere.rikkahub.data.datastore.SettingsStore
@@ -606,9 +598,16 @@ class RouteActivity : ComponentActivity() {
                             }
                         }
                     )
-
-
-
+                    if (BuildConfig.DEBUG) {
+                        Text(
+                            text = "[开发模式]",
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(top = 4.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+                        )
+                    }
                     AnimatedVisibility(
                         visible = migrationState is MigrationState.Migrating,
                         enter = fadeIn(),
