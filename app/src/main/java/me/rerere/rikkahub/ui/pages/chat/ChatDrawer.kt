@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.Screen
+import me.rerere.rikkahub.data.model.Avatar
 import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.ui.components.ui.UIAvatar
 import me.rerere.rikkahub.ui.context.Navigator
@@ -264,7 +265,7 @@ private fun UserProfileHeader(
     settings: Settings,
     sidebarColors: me.rerere.rikkahub.ui.theme.mercury.MercurySidebarColors?,
     onEditNickname: () -> Unit,
-    onUpdateAvatar: (String) -> Unit,
+    onUpdateAvatar: (Avatar) -> Unit,
 ) {
     Row(
         modifier = Modifier
