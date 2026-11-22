@@ -15,9 +15,28 @@ import androidx.compose.ui.graphics.Color
  */
 data class MercurySidebarColors(
     val background: Color,
-    val navigationSelectedBackground: Color,
-    val navigationNormalContent: Color,
-    val navigationSelectedContent: Color,
+
+    // --- primary (level-1) navigation ---
+    val primaryNormalText: Color,
+    val primarySelectedText: Color,
+    val primaryNormalIcon: Color,
+    val primarySelectedIcon: Color,
+
+    // --- secondary (level-2) navigation ---
+    val secondaryNormalText: Color,
+    val secondarySelectedText: Color,
+
+    // --- shared selection / structural ---
+    val selectedBackground: Color,
+    val chevronColor: Color,
+
+    // --- user profile area ---
+    val nicknameColor: Color,
+    val greetingColor: Color,
+    val avatarPlaceholderBackground: Color,
+    val avatarPlaceholderIcon: Color,
+
+    // --- conversation list (kept for future use) ---
     val conversationBackground: Color,
     val conversationSelectedBackground: Color,
     val folderBackground: Color,

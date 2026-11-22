@@ -22,10 +22,23 @@ class MercuryThemesTest {
     @Test
     fun `approved morning rose sidebar colors are preserved`() {
         val colors = requireNotNull(findMercuryTheme("mercury.morning_rose")).lightColors
+        // Sidebar background
         assertEquals(Color(0xFFFCFBFC), colors.sidebar.background)
-        assertEquals(Color(0xFFFAF0F1), colors.sidebar.navigationSelectedBackground)
-        assertEquals(Color(0xFF5D5357), colors.sidebar.navigationNormalContent)
-        assertEquals(Color(0xFFA77585), colors.sidebar.navigationSelectedContent)
+        assertEquals(Color(0xFFFAF0F1), colors.sidebar.selectedBackground)
+        // Level-1 navigation
+        assertEquals(Color(0xFF514247), colors.sidebar.primaryNormalText)
+        assertEquals(Color(0xFFA16D7E), colors.sidebar.primarySelectedText)
+        assertEquals(Color(0xFF81797B), colors.sidebar.primaryNormalIcon)
+        assertEquals(Color(0xFFA16D7E), colors.sidebar.primarySelectedIcon)
+        // Level-2 navigation
+        assertEquals(Color(0xFF5D5357), colors.sidebar.secondaryNormalText)
+        assertEquals(Color(0xFFA77585), colors.sidebar.secondarySelectedText)
+        // Chevron
+        assertEquals(Color(0xFF91898B), colors.sidebar.chevronColor)
+        // User profile
+        assertEquals(Color(0xFF514247), colors.sidebar.nicknameColor)
+        assertEquals(Color(0xFF91898B), colors.sidebar.greetingColor)
+        // Role list
         assertEquals(Color(0xFFFCFBFC), colors.roles.listBackground)
         assertEquals(Color(0xFFFAF0F1), colors.roles.selectedBackground)
         assertEquals(Color(0xFF514247), colors.roles.nameContent)

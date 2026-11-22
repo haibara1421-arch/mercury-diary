@@ -101,74 +101,97 @@ private val darkScheme = darkColorScheme(
 
 // Deliberately separate fields: matching HEX values do not imply a shared token.
 private val lightMercuryColors = MercuryThemeColors(
-        sidebar = MercurySidebarColors(
-            background = Color(0xFFFCFBFC),
-            navigationSelectedBackground = Color(0xFFFAF0F1),
-            navigationNormalContent = Color(0xFF5D5357),
-            navigationSelectedContent = Color(0xFFA77585),
-            conversationBackground = Color(0xFFFFF8F7),
-            conversationSelectedBackground = Color(0xFFF6E4E5),
-            folderBackground = Color(0xFFFFF0F1),
-            folderSelectedBackground = Color(0xFFFFD9DD),
-        ),
-        chat = MercuryChatColors(
-            background = Color(0xFFFFF8F7),
-            userBubble = Color(0xFFFFD9DD),
-            assistantBubble = Color(0xFFF6E4E5),
-            inputBackground = Color(0xFFFFF0F1),
-            inputBorder = Color(0xFFD7C1C3),
-            topBarBackground = Color(0xFFFFF0F1),
-            aiReplyIcon = Color(0xFF8E4955),
-            sendIcon = Color(0xFF524345),
-        ),
-        roles = MercuryRoleColors(
-            listBackground = Color(0xFFFCFBFC),
-            selectedBackground = Color(0xFFFAF0F1),
-            nameContent = Color(0xFF514247),
-            addIcon = Color(0xFFAC7181),
-        ),
-        settings = MercurySettingsColors(
-            pageBackground = Color(0xFFFFF8F7),
-            cardBackground = Color(0xFFFFF8F7),
-            itemIcon = Color(0xFF524345),
-            sectionTitle = Color(0xFF8E4955),
-        ),
-    )
+    sidebar = MercurySidebarColors(
+        background = Color(0xFFFCFBFC),
+        // Level-1 navigation
+        primaryNormalText = Color(0xFF514247),
+        primarySelectedText = Color(0xFFA16D7E),
+        primaryNormalIcon = Color(0xFF81797B),
+        primarySelectedIcon = Color(0xFFA16D7E),
+        // Level-2 navigation
+        secondaryNormalText = Color(0xFF5D5357),
+        secondarySelectedText = Color(0xFFA77585),
+        // Shared
+        selectedBackground = Color(0xFFFAF0F1),
+        chevronColor = Color(0xFF91898B),
+        // User profile
+        nicknameColor = Color(0xFF514247),
+        greetingColor = Color(0xFF91898B),
+        avatarPlaceholderBackground = Color(0xFFF5F1F0),
+        avatarPlaceholderIcon = Color(0xFFAD8790),
+        // Conversation list (kept for future)
+        conversationBackground = Color(0xFFFFF8F7),
+        conversationSelectedBackground = Color(0xFFF6E4E5),
+        folderBackground = Color(0xFFFFF0F1),
+        folderSelectedBackground = Color(0xFFFFD9DD),
+    ),
+    chat = MercuryChatColors(
+        background = Color(0xFFFFF8F7),
+        userBubble = Color(0xFFFFD9DD),
+        assistantBubble = Color(0xFFF6E4E5),
+        inputBackground = Color(0xFFFFF0F1),
+        inputBorder = Color(0xFFD7C1C3),
+        topBarBackground = Color(0xFFFFF0F1),
+        aiReplyIcon = Color(0xFF8E4955),
+        sendIcon = Color(0xFF524345),
+    ),
+    roles = MercuryRoleColors(
+        listBackground = Color(0xFFFCFBFC),
+        selectedBackground = Color(0xFFFAF0F1),
+        nameContent = Color(0xFF514247),
+        addIcon = Color(0xFFAC7181),
+    ),
+    settings = MercurySettingsColors(
+        pageBackground = Color(0xFFFFF8F7),
+        cardBackground = Color(0xFFFFF8F7),
+        itemIcon = Color(0xFF524345),
+        sectionTitle = Color(0xFF8E4955),
+    ),
+)
 
 private val darkMercuryColors = MercuryThemeColors(
-        sidebar = MercurySidebarColors(
-            background = Color(0xFF1A1112),
-            navigationSelectedBackground = Color(0xFF5C3F43),
-            navigationNormalContent = Color(0xFFF0DEDF),
-            navigationSelectedContent = Color(0xFFFFD9DD),
-            conversationBackground = Color(0xFF1A1112),
-            conversationSelectedBackground = Color(0xFF312828),
-            folderBackground = Color(0xFF22191A),
-            folderSelectedBackground = Color(0xFF5C3F43),
-        ),
-        chat = MercuryChatColors(
-            background = Color(0xFF1A1112),
-            userBubble = Color(0xFF72333E),
-            assistantBubble = Color(0xFF312828),
-            inputBackground = Color(0xFF22191A),
-            inputBorder = Color(0xFF524345),
-            topBarBackground = Color(0xFF22191A),
-            aiReplyIcon = Color(0xFFFFB2BC),
-            sendIcon = Color(0xFFD7C1C3),
-        ),
-        roles = MercuryRoleColors(
-            listBackground = Color(0xFF1A1112),
-            selectedBackground = Color(0xFF312828),
-            nameContent = Color(0xFFF0DEDF),
-            addIcon = Color(0xFFFFB2BC),
-        ),
-        settings = MercurySettingsColors(
-            pageBackground = Color(0xFF1A1112),
-            cardBackground = Color(0xFF413738),
-            itemIcon = Color(0xFFD7C1C3),
-            sectionTitle = Color(0xFFFFB2BC),
-        ),
-    )
+    sidebar = MercurySidebarColors(
+        background = Color(0xFF1A1112),
+        primaryNormalText = Color(0xFFF0DEDF),
+        primarySelectedText = Color(0xFFFFD9DD),
+        primaryNormalIcon = Color(0xFFF0DEDF),
+        primarySelectedIcon = Color(0xFFFFD9DD),
+        secondaryNormalText = Color(0xFFF0DEDF),
+        secondarySelectedText = Color(0xFFFFD9DD),
+        selectedBackground = Color(0xFF5C3F43),
+        chevronColor = Color(0xFF9F8C8E),
+        nicknameColor = Color(0xFFF0DEDF),
+        greetingColor = Color(0xFF9F8C8E),
+        avatarPlaceholderBackground = Color(0xFF312828),
+        avatarPlaceholderIcon = Color(0xFFFFB2BC),
+        conversationBackground = Color(0xFF1A1112),
+        conversationSelectedBackground = Color(0xFF312828),
+        folderBackground = Color(0xFF22191A),
+        folderSelectedBackground = Color(0xFF5C3F43),
+    ),
+    chat = MercuryChatColors(
+        background = Color(0xFF1A1112),
+        userBubble = Color(0xFF72333E),
+        assistantBubble = Color(0xFF312828),
+        inputBackground = Color(0xFF22191A),
+        inputBorder = Color(0xFF524345),
+        topBarBackground = Color(0xFF22191A),
+        aiReplyIcon = Color(0xFFFFB2BC),
+        sendIcon = Color(0xFFD7C1C3),
+    ),
+    roles = MercuryRoleColors(
+        listBackground = Color(0xFF1A1112),
+        selectedBackground = Color(0xFF312828),
+        nameContent = Color(0xFFF0DEDF),
+        addIcon = Color(0xFFFFB2BC),
+    ),
+    settings = MercurySettingsColors(
+        pageBackground = Color(0xFF1A1112),
+        cardBackground = Color(0xFF413738),
+        itemIcon = Color(0xFFD7C1C3),
+        sectionTitle = Color(0xFFFFB2BC),
+    ),
+)
 
 val MorningRoseTheme by lazy {
     MercuryTheme(
