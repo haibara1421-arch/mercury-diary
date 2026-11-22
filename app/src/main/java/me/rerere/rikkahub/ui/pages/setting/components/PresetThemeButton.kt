@@ -125,6 +125,7 @@ fun PresetThemeButtonGroup(
     themeId: String,
     modifier: Modifier = Modifier,
     onChangeTheme: (String) -> Unit,
+    themes: List<PresetTheme> = PresetThemes,
 ) {
     FlowRow(
         modifier = modifier
@@ -134,7 +135,7 @@ fun PresetThemeButtonGroup(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         maxItemsInEachRow = THEME_GRID_COLUMNS,
     ) {
-        PresetThemes.fastForEach { theme ->
+        themes.fastForEach { theme ->
             key(theme.id) {
                 PresetThemeButton(
                     theme = theme,
@@ -147,7 +148,7 @@ fun PresetThemeButtonGroup(
             }
         }
         // 补齐最后一行的空位, 让每列宽度保持一致
-        repeat((THEME_GRID_COLUMNS - PresetThemes.size % THEME_GRID_COLUMNS) % THEME_GRID_COLUMNS) {
+        repeat((THEME_GRID_COLUMNS - themes.size % THEME_GRID_COLUMNS) % THEME_GRID_COLUMNS) {
             Spacer(modifier = Modifier.weight(1f))
         }
     }
