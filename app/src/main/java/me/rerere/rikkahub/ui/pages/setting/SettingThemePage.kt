@@ -80,6 +80,7 @@ import me.rerere.rikkahub.ui.pages.setting.components.PresetThemeButtonGroup
 import me.rerere.rikkahub.ui.theme.CustomColors
 import me.rerere.rikkahub.ui.theme.CustomTheme
 import me.rerere.rikkahub.ui.theme.LocalDarkMode
+import me.rerere.rikkahub.ui.theme.mercury.MercuryThemes
 import me.rerere.rikkahub.utils.plus
 import me.rerere.ui.components.RikkaConfirmDialog
 import org.koin.androidx.compose.koinViewModel
@@ -136,6 +137,36 @@ fun SettingThemePage(vm: SettingVM = koinViewModel()) {
                             text = stringResource(R.string.setting_theme_page_dynamic_color_hint),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            // Mercury presets are separate from classic/user-created themes.
+            // Keep this section available even while system dynamic colors are on.
+            item("mercuryThemes") {
+                Column(modifier = Modifier.padding(horizontal = 8.dp)) {
+                    Text(
+                        text = "水星记主题",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 8.dp)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(MaterialTheme.colorScheme.surfaceBright)
+                    ) {
+                        PresetThemeButtonGroup(
+                            themeId = if (settings.dynamicColor) "" else settings.themeId,
+                            modifier = Modifier.fillMaxWidth(),
+                            themes = MercuryThemes.map { it.preset },
+                            onChangeTheme = { id ->
+                                vm.updateSettings { latest ->
+                                    latest.copy(themeId = id, dynamicColor = false)
+                                }
+                            }
                         )
                     }
                 }

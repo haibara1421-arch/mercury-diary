@@ -24,6 +24,8 @@ import me.rerere.rikkahub.ui.hooks.rememberAmoledDarkMode
 import me.rerere.rikkahub.ui.hooks.rememberCurrentColorMode
 import me.rerere.rikkahub.ui.hooks.rememberUserSettingsState
 import me.rerere.rikkahub.utils.getActivity
+import me.rerere.rikkahub.ui.theme.mercury.LocalMercuryColors
+import me.rerere.rikkahub.ui.theme.mercury.findMercuryTheme
 
 private val ExtendLightColors = lightExtendColors()
 private val ExtendDarkColors = darkExtendColors()
@@ -54,11 +56,20 @@ fun RikkahubTheme(
     }
     val amoledDarkMode by rememberAmoledDarkMode()
 
+    // A saved Mercury ID only takes effect while a manual theme is active.
+    // Dynamic system colors must not accidentally inherit Mercury tokens.
+    val mercuryTheme = if (!settings.dynamicColor || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+        findMercuryTheme(settings.themeId)
+    } else {
+        null
+    }
+
     val colorScheme = when {
         settings.dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
+        mercuryTheme != null -> mercuryTheme.preset.getColorScheme(dark = darkTheme)
         else -> {
             val theme = findThemeById(settings.themeId, settings.customThemes)
                 ?: findPresetTheme(settings.themeId)
@@ -102,6 +113,7 @@ fun RikkahubTheme(
     CompositionLocalProvider(
         LocalDarkMode provides darkTheme,
         LocalExtendColors provides extendColors,
+        LocalMercuryColors provides mercuryTheme?.getColors(darkTheme),
         LocalOverscrollFactory provides null,
     ) {
         MaterialExpressiveTheme(
