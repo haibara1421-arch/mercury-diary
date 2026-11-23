@@ -56,20 +56,16 @@ fun RikkahubTheme(
     }
     val amoledDarkMode by rememberAmoledDarkMode()
 
-    // A saved Mercury ID only takes effect while a manual theme is active.
-    // Dynamic system colors must not accidentally inherit Mercury tokens.
-    val mercuryTheme = if (!settings.dynamicColor || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-        findMercuryTheme(settings.themeId)
-    } else {
-        null
-    }
+    // Mercury themes always take priority — if the user explicitly picked one,
+    // it should apply regardless of the dynamic-color toggle.
+    val mercuryTheme = findMercuryTheme(settings.themeId)
 
     val colorScheme = when {
+        mercuryTheme != null -> mercuryTheme.preset.getColorScheme(dark = darkTheme)
         settings.dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-        mercuryTheme != null -> mercuryTheme.preset.getColorScheme(dark = darkTheme)
         else -> {
             val theme = findThemeById(settings.themeId, settings.customThemes)
                 ?: findPresetTheme(settings.themeId)
