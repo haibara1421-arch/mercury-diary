@@ -102,7 +102,7 @@ private val darkScheme = darkColorScheme(
 // Deliberately separate fields: matching HEX values do not imply a shared token.
 private val lightMercuryColors = MercuryThemeColors(
     sidebar = MercurySidebarColors(
-        background = Color(0xFFFCFBFC),
+        background = Color(0xFFF5E0E3),           // 诊断色：明显粉色
         // Level-1 navigation
         primaryNormalText = Color(0xFF514247),
         primarySelectedText = Color(0xFFA16D7E),
@@ -112,7 +112,7 @@ private val lightMercuryColors = MercuryThemeColors(
         secondaryNormalText = Color(0xFF5D5357),
         secondarySelectedText = Color(0xFFA77585),
         // Shared
-        selectedBackground = Color(0xFFFAF0F1),
+        selectedBackground = Color(0xFFECC8CE),    // 诊断色：明显深粉
         chevronColor = Color(0xFF91898B),
         // User profile
         nicknameColor = Color(0xFF514247),
