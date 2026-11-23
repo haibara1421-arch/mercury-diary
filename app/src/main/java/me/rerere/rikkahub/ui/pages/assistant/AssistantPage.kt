@@ -7,6 +7,8 @@ import me.rerere.hugeicons.stroke.Search01
 import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.hugeicons.stroke.Tick01
+import me.rerere.hugeicons.stroke.Settings03
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -49,11 +51,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
@@ -78,6 +82,8 @@ import me.rerere.rikkahub.ui.hooks.EditState
 import me.rerere.rikkahub.ui.hooks.EditStateContent
 import me.rerere.rikkahub.ui.hooks.heroAnimation
 import me.rerere.rikkahub.ui.hooks.useEditState
+import me.rerere.rikkahub.ui.hooks.readBooleanPreference
+import me.rerere.rikkahub.utils.navigateToChatPage
 import me.rerere.rikkahub.ui.pages.assistant.detail.AssistantImporter
 import me.rerere.rikkahub.ui.theme.CustomColors
 import me.rerere.ui.components.RikkaConfirmDialog
@@ -93,6 +99,8 @@ fun AssistantPage(vm: AssistantVM = koinViewModel()) {
         vm.addAssistant(it)
     }
     val navController = LocalNavController.current
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     // 搜索关键词状态
@@ -217,6 +225,16 @@ fun AssistantPage(vm: AssistantVM = koinViewModel()) {
                             assistant = assistant,
                             settings = settings,
                             memories = memories,
+                            isCurrentAssistant = settings.assistantId == assistant.id,
+                            onSelect = {
+                                scope.launch {
+                                    val chatId = vm.selectAssistant(
+                                        assistant,
+                                        context.readBooleanPreference("create_new_conversation_on_start", true)
+                                    )
+                                    navigateToChatPage(navigator = navController, chatId = chatId)
+                                }
+                            },
                             onEdit = {
                                 navController.navigate(Screen.AssistantDetail(id = assistant.id.toString()))
                             },
@@ -418,16 +436,21 @@ private fun AssistantItem(
     settings: Settings,
     modifier: Modifier = Modifier,
     memories: List<MemoryFile>,
+    isCurrentAssistant: Boolean = false,
+    onSelect: () -> Unit,
     onEdit: () -> Unit,
     onCopy: () -> Unit,
     onDelete: () -> Unit,
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        onClick = onEdit,
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = CustomColors.listItemColors.containerColor
+            containerColor = if (isCurrentAssistant) {
+                MaterialTheme.colorScheme.secondaryContainer
+            } else {
+                CustomColors.listItemColors.containerColor
+            }
         )
     ) {
         Row(
@@ -437,16 +460,21 @@ private fun AssistantItem(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Avatar — tap to view profile (for now same as edit)
             UIAvatar(
                 name = assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) },
                 value = assistant.avatar,
                 modifier = Modifier
                     .size(48.dp)
                     .heroAnimation("assistant_${assistant.id}")
+                    .clickable { onEdit() }
             )
 
+            // Name area — tap to switch to this assistant's conversation
             Column(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { onSelect() },
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
 
@@ -493,6 +521,12 @@ private fun AssistantItem(
                 }
             }
 
+            // Settings icon — tap to edit assistant config
+            IconButton(onClick = onEdit) {
+                Icon(HugeIcons.Settings03, contentDescription = stringResource(R.string.settings))
+            }
+
+            // More actions menu (clone, delete)
             ItemActionMenu(
                 actions = listOf(
                     ItemAction(

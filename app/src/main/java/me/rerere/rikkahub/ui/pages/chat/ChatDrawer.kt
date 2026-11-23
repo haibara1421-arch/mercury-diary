@@ -51,16 +51,6 @@ import me.rerere.rikkahub.ui.context.Navigator
 import me.rerere.rikkahub.ui.hooks.EditStateContent
 import me.rerere.rikkahub.ui.hooks.useEditState
 import me.rerere.rikkahub.ui.theme.mercury.LocalMercuryColors
-import me.rerere.rikkahub.ui.components.ai.AssistantPicker
-import me.rerere.rikkahub.data.repository.ConversationRepository
-import me.rerere.rikkahub.ui.hooks.readBooleanPreference
-import me.rerere.rikkahub.utils.navigateToChatPage
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.platform.LocalContext
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import kotlin.uuid.Uuid
-import org.koin.compose.koinInject
 
 // ──────────────────────────────────────────────
 // Mercury sidebar menu data
@@ -131,10 +121,6 @@ fun ChatDrawerContent(
 ) {
     val mercuryColors = LocalMercuryColors.current
     val sidebarColors = mercuryColors?.sidebar
-
-    val scope = rememberCoroutineScope()
-    val context = LocalContext.current
-    val repo = koinInject<ConversationRepository>()
 
     val menus = remember { buildMenus() }
 
@@ -239,32 +225,6 @@ fun ChatDrawerContent(
                 }
             }
 
-            Spacer(Modifier.height(8.dp))
-
-            // ── Assistant picker (preserves original assistant/conversation binding) ──
-            AssistantPicker(
-                settings = settings,
-                onSelectAssistant = { assistant ->
-                    val updateJob = vm.updateSettings { it.copy(assistantId = assistant.id) }
-                    scope.launch {
-                        updateJob.join()
-                        val id = if (context.readBooleanPreference("create_new_conversation_on_start", true)) {
-                            Uuid.random()
-                        } else {
-                            repo.getConversationsOfAssistant(assistant.id)
-                                .first()
-                                .firstOrNull()
-                                ?.id ?: Uuid.random()
-                        }
-                        navigateToChatPage(navigator = navController, chatId = id)
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                onClickSetting = {
-                    val currentAssistantId = settings.assistantId
-                    navController.navigate(Screen.AssistantDetail(id = currentAssistantId.toString()))
-                }
-            )
         }
 
     // ── Nickname edit dialog ──
