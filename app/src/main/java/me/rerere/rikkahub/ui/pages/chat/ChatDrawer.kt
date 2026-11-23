@@ -117,7 +117,7 @@ fun ChatDrawerContent(
     navController: Navigator,
     vm: ChatVM,
     settings: Settings,
-    onCloseDrawer: () -> Unit,
+    current: me.rerere.rikkahub.data.model.Conversation? = null,
 ) {
     val mercuryColors = LocalMercuryColors.current
     val sidebarColors = mercuryColors?.sidebar
@@ -192,7 +192,6 @@ fun ChatDrawerContent(
                             } else {
                                 menu.screen?.let {
                                     navController.navigate(it)
-                                    onCloseDrawer()
                                 }
                             }
                         },
@@ -217,7 +216,6 @@ fun ChatDrawerContent(
                                         if (child.screen != null) {
                                             navController.navigate(child.screen)
                                         }
-                                        onCloseDrawer()
                                     },
                                 )
                             }

@@ -218,9 +218,9 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null) {
                 drawerContent = {
                     ChatDrawerContent(
                         navController = navController,
+                        current = conversation,
                         vm = vm,
-                        settings = setting,
-                        onCloseDrawer = { scope.launch { drawerState.close() } },
+                        settings = setting
                     )
                 }
             ) {
@@ -251,9 +251,9 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null) {
                 drawerContent = {
                     ChatDrawerContent(
                         navController = navController,
+                        current = conversation,
                         vm = vm,
-                        settings = setting,
-                        onCloseDrawer = { scope.launch { drawerState.close() } },
+                        settings = setting
                     )
                 }
             ) {
